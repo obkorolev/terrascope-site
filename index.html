@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TerraScope — Satellite Data On Demand</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* —— Navbar —— */
+    .navwrap{position:fixed;inset:0 0 auto 0;z-index:50}
+    .navbg{position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(to bottom,rgba(0,0,0,.65),rgba(0,0,0,0))}
+
+    /* —— Hero —— */
+    .hero{position:relative;min-height:110vh;overflow:hidden;background:#000}
+    .hero .imgwrap{position:absolute;inset:0;overflow:hidden;z-index:0}
+    .hero img{
+      position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+      object-position:50% 105%;
+      transform-origin:center;
+      animation:kenburns 48s ease-in-out infinite alternate;
+      filter:saturate(1.05) contrast(1.05) brightness(.95);
+    }
+    @keyframes kenburns{0%{transform:scale(1.06) translateY(0%)}100%{transform:scale(1.09) translateY(-1.2%)}}
+
+    .cinema{position:absolute;inset:-8%;pointer-events:none;mix-blend-mode:screen;opacity:.35;filter:blur(10px);z-index:1}
+    .cinema::before,.cinema::after{content:"";position:absolute;inset:0}
+    .cinema::before{
+      background:
+        radial-gradient(90% 70% at 20% 10%, rgba(160,220,255,.18), transparent 60%),
+        radial-gradient(100% 80% at 85% 35%, rgba(200,160,255,.16), transparent 60%);
+      animation:driftA 60s ease-in-out infinite;
+    }
+    .cinema::after{
+      background:conic-gradient(from 0deg at 60% 15%, rgba(120,200,255,.10),
+                 transparent 35%, rgba(200,160,255,.10) 65%, transparent 85%);
+      transform-origin:60% 15%;
+      animation:driftB 90s linear infinite;opacity:.45;
+    }
+    @keyframes driftA{0%{transform:translate3d(-1%,0,0) scale(1.02)}50%{transform:translate3d(1%,-1%,0) scale(1.03)}100%{transform:translate3d(-1%,0,0) scale(1.02)}}
+    @keyframes driftB{to{transform:rotate(360deg) scale(1.02)}}
+
+    .topfade{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.90),rgba(0,0,0,.45) 35%,rgba(0,0,0,0) 70%);z-index:2}
+    .botfade{position:absolute;left:0;right:0;bottom:0;height:22vh;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,1));z-index:2}
+
+    .grain{position:absolute;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:soft-light;z-index:1;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.10) 0 1px, transparent 1px 2px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.10) 0 1px, transparent 1px 2px);
+      animation:grainShift 6s steps(2) infinite}
+    @keyframes grainShift{50%{transform:translate3d(.6px,.6px,0)}}
+
+    /* Glass card + subtle reflection */
+    .glass-card{
+      position: relative; overflow: hidden;
+      backdrop-filter: blur(16px);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 1rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+    }
+    .glass-card.reflection::before{
+      content:""; position:absolute; top:-35%; left:-20%;
+      width:140%; height:60%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.22), rgba(255,255,255,0));
+      transform: rotate(-6deg); pointer-events:none;
+    }
+
+    /* Processing card is transparent */
+    #processingCard { background: transparent; }
+
+   /* Base arc style */
+    .ring-arc {
+      stroke-dasharray: 314;     /* full circumference for r=50 */
+      stroke-dashoffset: 314;    /* start hidden */
+      animation: dashAnim 2s ease-in-out infinite;
+    }
+
+    .ring-rotor {
+      transform-origin: 60px 60px;
+      animation: rotateAnim 2s linear infinite;
+    }
+
+    /* Arc "head/tail" loader */
+    @keyframes dashAnim {
+      0%   { stroke-dashoffset: 314; }   /* invisible */
+      50%  { stroke-dashoffset: 0; }     /* fully drawn */
+      100% { stroke-dashoffset: 314; }   /* invisible again */
+    }
+
+    /* Continuous clockwise spin */
+    @keyframes rotateAnim {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Urgency dropdown theme via CSS vars */
+    .urg { --pill-bg: rgba(255,255,255,.06); --pill-border: rgba(255,255,255,.18); --hover-bg: rgba(255,255,255,.14); }
+    .urg-asap     { --pill-bg: rgba(255,159,67,.18);  --pill-border: rgba(255,159,67,.42);  --hover-bg: rgba(255,159,67,.22); }
+    .urg-standard { --pill-bg: rgba(34,197,94,.18);   --pill-border: rgba(34,197,94,.42);   --hover-bg: rgba(34,197,94,.22); }
+    .urg-norush   { --pill-bg: rgba(59,130,246,.18);  --pill-border: rgba(59,130,246,.42);  --hover-bg: rgba(59,130,246,.22); }
+
+    .urg-btn{
+      background: var(--pill-bg);
+      border: 1px solid var(--pill-border);
+      color: #000; /* you asked for black text */
+      backdrop-filter: blur(10px);
+    }
+    .urg-menu{
+      background: rgba(255,255,255,.08);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: .75rem;
+    }
+    .urg-opt.asap:hover     { background: rgba(255,159,67,.22);  }
+    .urg-opt.standard:hover { background: rgba(34,197,94,.22);   }
+    .urg-opt.norush:hover   { background: rgba(59,130,246,.22);  }
+    .urg-open .urg-caret{ transform: rotate(180deg); }
+
+  </style>
+</head>
+<body class="bg-black text-white">
+
+  <!-- NAVBAR (non-fixed) -->
+  <header class="relative w-full bg-transparent">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="text-xl font-bold tracking-wide">TerraScope</div>
+      <nav class="space-x-8 text-sm">
+        <a href="#about" class="hover:text-cyan-400 transition">About</a>
+        <a href="#request" class="hover:text-cyan-400 transition">Request Data</a>
+      </nav>
+    </div>
+    <div class="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/50 to-transparent"></div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="imgwrap">
+      <img src="Gemini_Generated_Image_epc5w4epc5w4epc5.jpg" alt="Earth from space"/>
+    </div>
+    <div class="topfade"></div>
+    <div class="cinema"></div>
+    <div class="grain"></div>
+    <div class="botfade"></div>
+
+    <!-- extra top darkening for text -->
+    <div class="absolute inset-x-0 top-0 z-20" style="height: 400px; background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0));"></div>
+
+    <div class="relative z-30 max-w-6xl mx-auto px-6 pt-20 md:pt-20 text-center">
+      <h1 class="text-5xl md:text-7xl font-normal tracking-tight leading-tight
+                 bg-gradient-to-r from-cyan-300 to-purple-300 bg-clip-text text-transparent">
+        AI Processed Satellite Data,<wbr> Delivered
+      </h1>
+
+      <p class="mt-8 text-2xl md:text-xl font-bold text-gray-100 max-w-4xl mx-auto">
+        From plain language requests to Oceanographic Datasets — ready to use in your inbox.
+      </p>
+
+      <!-- FUSED REQUEST FORM (upper only) -->
+      <div class="mt-8 mx-auto max-w-3xl">
+        <form id="request" action="https://formspree.io/f/xzzvqjyq" method="POST"
+              class="glass-card reflection p-4 md:p-5 space-y-4 text-left min-h-[18rem]">
+
+          <!-- Honeypot -->
+          <input type="text" name="_gotcha" class="hidden" tabindex="-1" autocomplete="off"/>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label for="name" class="block text-gray-300 mb-1 text-sm">Your Name</label>
+              <input id="name" name="name" required
+                    class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+            </div>
+            <div>
+              <label for="email" class="block text-gray-300 mb-1 text-sm">Email Address</label>
+              <input id="email" type="email" name="_replyto" required
+                    class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+            </div>
+          </div>
+
+          <div>
+            <label for="message" class="block text-gray-300 mb-1 text-sm">Describe the Data You Need</label>
+            <textarea id="message" name="message" rows="4" required
+                      placeholder="e.g., Monthly average SST for the Gulf of Cádiz from Jan–Jun 2023 as CSV and a map PNG"
+                      class="w-full rounded-xl px-4 py-3 bg-white/5 text-white placeholder-gray-300
+                            border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"></textarea>
+          </div>
+
+          <!-- Controls: urgency + actions -->
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-[auto,1fr] items-center gap-3">
+            <div class="justify-self-center sm:justify-self-start">
+              <div id="urgencySelect" class="urg urg-standard relative inline-block flex-shrink-0">
+                <input type="hidden" name="urgency" id="urgVal" value="Standard (2–3 days)"/>
+                <button type="button"
+                        class="urg-btn inline-flex items-center gap-2 rounded-xl px-4 py-2 font-medium cursor-pointer shadow hover:opacity-95 transition">
+                  <span class="urg-label">Standard (2–3 days)</span>
+                  <svg class="urg-caret w-4 h-4 transition-transform" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+                <!-- Menu -->
+                <ul id="urgMenu" class="urg-menu absolute left-0 mt-2 w-56 rounded-xl p-1 shadow-xl hidden">
+                  <li class="urg-opt asap     rounded-lg px-3 py-2 text-sm text-black cursor-pointer" data-value="ASAP">ASAP</li>
+                  <li class="urg-opt standard rounded-lg px-3 py-2 text-sm text-black cursor-pointer" data-value="Standard (2–3 days)">Standard (2–3 days)</li>
+                  <li class="urg-opt norush   rounded-lg px-3 py-2 text-sm text-black cursor-pointer" data-value="No rush">No rush</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="sm:col-span-1 flex justify-center sm:justify-end gap-3">
+              <input type="hidden" name="_subject" id="subject" value="TerraScope request"/>
+              <button id="submitBtn" type="submit"
+                      class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-semibold
+                            bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90 transition">
+                Submit Request
+              </button>
+              <button type="button" id="clearBtn"
+                      class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
+                Clear
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- PROCESSING — glass card that exactly replaces the form -->
+        <div id="processingCard" class="hidden glass-card reflection p-8 mt-6 text-center min-h-[18rem]">
+          <div class="flex flex-col items-center gap-5">
+            <div class="relative w-28 h-28">
+              <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
+                <defs>
+                  <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#22d3ee"/><stop offset="50%" stop-color="#60a5fa"/>
+                    <stop offset="100%" stop-color="#a78bfa"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="url(#ringGrad)" stroke-width="10"
+                        stroke-linecap="round" class="ring-arc"/>
+              </svg>
+            </div>
+            <h4 class="text-xl font-semibold">Analyzing your request…</h4>
+            <p class="text-gray-300 text-sm max-w-md">
+              Initializing pipelines: dataset discovery, subsetting, reprojection, export.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOGO STRIP (kept) -->
+  <section class="bg-black py-8">
+    <p class="text-center text-gray-400 text-xs md:text-sm tracking-wider mb-5">
+      Data Sources & Technology We Use
+    </p>
+    <div class="grid grid-cols-4 w-full">
+      <div class="flex items-center justify-center h-16 md:h-20">
+        <img src="./logos/google.png" alt="Google" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy">
+      </div>
+      <div class="flex items-center justify-center h-16 md:h-20">
+        <img src="./logos/openai.png" alt="OpenAI" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy">
+      </div>
+      <div class="flex items-center justify-center h-16 md:h-20">
+        <img src="./logos/copernicus.png" alt="Copernicus" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy">
+      </div>
+      <div class="flex items-center justify-center h-16 md:h-20">
+        <img src="./logos/esa.png" alt="ESA" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT (unchanged) -->
+  <section id="about" class="py-20 bg-black">
+    <div class="max-w-5xl mx-auto px-6 text-center">
+      <h3 class="text-3xl font-semibold text-cyan-400">How It Works</h3>
+      <p class="mt-4 text-gray-400 max-w-2xl mx-auto">
+        We translate plain-language requests into precise data pulls, process them, and deliver clean outputs (CSV, GeoTIFF, plots).
+      </p>
+
+      <div class="mt-12 grid gap-6 md:grid-cols-3">
+        <div class="bg-white/5 p-6 rounded-xl">
+          <img src="./icons/terra1.png" alt="Globe Icon" class="w-20 h-20 mx-auto mb-4 opacity-80">
+          <h4 class="font-semibold text-cyan-300 mb-1">1. Describe</h4>
+          <p class="text-gray-400 text-sm">Tell us what variable, where, and when.</p>
+        </div>
+        <div class="bg-white/5 p-6 rounded-xl">
+          <img src="./icons/terra2.png" alt="Globe Icon" class="w-20 h-20 mx-auto mb-4 opacity-80">
+          <h4 class="font-semibold text-cyan-300 mb-1">2. Prepare</h4>
+          <p class="text-gray-400 text-sm">We source, subset, reproject, and format.</p>
+        </div>
+        <div class="bg-white/5 p-6 rounded-xl">
+          <img src="./icons/terra3.png" alt="Globe Icon" class="w-20 h-20 mx-auto mb-4 opacity-80">
+          <h4 class="font-semibold text-cyan-300 mb-1">3. Deliver</h4>
+          <p class="text-gray-400 text-sm">Receive clean files + a short data brief.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="bg-white/5 py-6 text-center text-gray-500 text-sm">
+    © 2025 TerraScope. All rights reserved.
+  </footer>
+
+  <!-- JS: AJAX submit + animation -->
+  <script>
+window.addEventListener('DOMContentLoaded', () => {
+  // ===== FORM =====
+  const form       = document.querySelector('form#request');
+  if (!form) return;
+
+  const nameEl     = document.getElementById('name');
+  const emailEl    = document.getElementById('email');
+  const msgEl      = document.getElementById('message');
+  const subjEl     = document.getElementById('subject');
+  const statusEl   = document.getElementById('statusText') || (()=>{ const p=document.createElement('p'); p.id='statusText'; p.className='text-sm text-red-300 mt-1'; form.appendChild(p); return p; })();
+  const btnEl      = document.getElementById('submitBtn');
+  const clearBtn   = document.getElementById('clearBtn');
+  const processing = document.getElementById('processingCard');
+
+  // ===== CUSTOM URGENCY DROPDOWN (PORTALED) =====
+  const urgWrap   = document.getElementById('urgencySelect');
+  const urgBtn    = urgWrap ? urgWrap.querySelector('.urg-btn')   : null;
+  let   urgMenu   = document.getElementById('urgMenu') || (urgWrap ? urgWrap.querySelector('.urg-menu') : null);
+  const urgLabel  = urgWrap ? urgWrap.querySelector('.urg-label') : null;
+  const urgHidden = document.getElementById('urgVal');
+
+  function setUrgency(val){
+    if (urgLabel)  urgLabel.textContent = val;
+    if (urgHidden) urgHidden.value = val;
+    if (!urgWrap) return;
+    urgWrap.classList.remove('urg-asap','urg-standard','urg-norush');
+    if (val.startsWith('ASAP'))         urgWrap.classList.add('urg-asap');
+    else if (val.startsWith('No rush')) urgWrap.classList.add('urg-norush');
+    else                                urgWrap.classList.add('urg-standard');
+  }
+
+  function ensurePortaled(){
+    if (!urgMenu || urgMenu.dataset.portaled) return;
+    document.body.appendChild(urgMenu);
+    urgMenu.dataset.portaled = '1';
+    urgMenu.style.position = 'fixed';
+    urgMenu.style.zIndex   = '2147483647';
+    urgMenu.style.margin   = '0';
+  }
+
+  function updateMenuPosition(){
+    if (!urgBtn || !urgMenu) return;
+    const r = urgBtn.getBoundingClientRect();
+    urgMenu.style.left     = Math.round(r.left) + 'px';
+    urgMenu.style.top      = Math.round(r.bottom + 8) + 'px';
+    urgMenu.style.minWidth = Math.max(r.width, 224) + 'px';
+  }
+
+  function openMenu(){
+    ensurePortaled();
+    updateMenuPosition();
+    urgMenu.classList.remove('hidden');
+    urgWrap && urgWrap.classList.add('urg-open');
+  }
+
+  function closeMenu(){
+    if (!urgMenu) return;
+    urgMenu.classList.add('hidden');
+    urgWrap && urgWrap.classList.remove('urg-open');
+  }
+
+  if (urgBtn && urgMenu){
+    urgBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (urgMenu.classList.contains('hidden')) openMenu(); else closeMenu();
+    });
+    document.addEventListener('click', (e) => {
+      if (!urgWrap.contains(e.target) && !urgMenu.contains(e.target)) closeMenu();
+    });
+    window.addEventListener('scroll', () => {
+      if (!urgMenu.classList.contains('hidden')) updateMenuPosition();
+    }, { passive:true });
+    window.addEventListener('resize', () => {
+      if (!urgMenu.classList.contains('hidden')) updateMenuPosition();
+    });
+
+    // Items (supports .urg-opt or .urg-item)
+    urgMenu.querySelectorAll('.urg-opt, .urg-item').forEach(li => {
+      li.addEventListener('click', () => { setUrgency(li.getAttribute('data-value')); closeMenu(); });
+    });
+
+    // Init theme
+    setUrgency(urgHidden?.value || 'Standard (2–3 days)');
+  }
+
+  // ===== CLEAR =====
+  if (clearBtn){
+    clearBtn.addEventListener('click', () => {
+      if (nameEl)  nameEl.value = '';
+      if (emailEl) emailEl.value = '';
+      if (msgEl)   msgEl.value = '';
+      setUrgency('Standard (2–3 days)');
+      statusEl.textContent = '';
+      statusEl.classList.add('hidden');
+    });
+  }
+
+  // ===== SUBMIT (AJAX to Formspree) =====
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.classList.add('hidden');
+    if (btnEl){ btnEl.disabled = true; btnEl.textContent = 'Sending…'; }
+
+    // subject
+    const who = (nameEl?.value || 'New request').trim();
+    const urg = (urgHidden?.value || '').trim();
+    if (subjEl) subjEl.value = `TerraScope request — ${who} (${urg})`;
+
+    const endpoint = form.getAttribute('action');
+    const formData = new FormData(form);
+
+    try {
+      const res = await fetch(endpoint, { method: 'POST', headers: { 'Accept': 'application/json' }, body: formData });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || 'Failed to submit. Please try again.');
+      }
+      // Success → swap UI
+      form.classList.add('hidden');
+      processing.classList.remove('hidden');
+      
+    } catch (err) {
+      statusEl.textContent = err.message || 'Network error. Please try again.';
+      statusEl.classList.remove('hidden');
+    } finally {
+      if (btnEl){ btnEl.disabled = false; btnEl.textContent = 'Submit Request'; }
+    }
+  });
+});
+</script>
+
+
+</body>
+</html>
