@@ -95,6 +95,22 @@
     @keyframes ants   { to { stroke-dashoffset: -12 } }
     @keyframes orbit  { to { transform: rotate(360deg); } }
 
+    /* Chat bubbles */
+    .chat-log{max-height:18rem;overflow:auto;scroll-behavior:smooth}
+    .msg{display:flex;gap:.6rem}
+    .msg+.msg{margin-top:.6rem}
+    .msg .bubble{padding:.6rem .8rem;border-radius:.8rem;max-width:90%}
+    .msg.user   .bubble{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18)}
+    .msg.bot    .bubble{background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.35)} /* greenish glass */
+    .msg .role{font-size:.7rem;opacity:.6}
+
+    /* Inline chips for missing items */
+    .chip{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .5rem;border-radius:999px;
+          background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);font-size:.75rem}
+
+    /* Hide the real textarea we submit to Formspree; we’ll fill it from chat */
+    #message{display:none}
+
     /* Urgency dropdown theme via CSS vars */
     .urg { --pill-bg: rgba(255,255,255,.06); --pill-border: rgba(255,255,255,.18); --hover-bg: rgba(255,255,255,.14); }
     .urg-asap     { --pill-bg: rgba(255,159,67,.18);  --pill-border: rgba(255,159,67,.42);  --hover-bg: rgba(255,159,67,.22); }
@@ -178,18 +194,40 @@
             </div>
           </div>
 
+          <!-- CHAT ASSISTANT replaces the free textarea -->
           <div>
-            <label for="message" class="block text-gray-300 mb-1 text-sm">Describe the Data You Need</label>
-            <textarea id="message" name="message" rows="4" required
-                      placeholder="e.g., Monthly average SST for the Gulf of Cádiz from Jan–Jun 2023 as CSV and a map PNG"
-                      class="w-full rounded-xl px-4 py-3 bg-white/5 text-white placeholder-gray-300
-                            border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"></textarea>
+            <label class="block text-gray-300 mb-1 text-sm">Describe the Data You Need</label>
+
+            <div class="rounded-xl border border-white/20 bg-white/5">
+              <!-- Transcript -->
+              <div id="chatLog" class="chat-log p-3 space-y-2">
+                <!-- initial assistant message -->
+                <div class="msg bot">
+                </div>
+              </div>
+
+              <!-- Composer -->
+              <div class="flex items-end gap-2 p-3 border-t border-white/10">
+                <input id="chatInput" type="text" autocomplete="off"
+                      placeholder="e.g., Monthly SST for Gulf of Cádiz, Jan–Jun 2023, CSV + map"
+                      class="flex-1 rounded-lg px-3 py-2 bg-white/5 border border-white/20
+                              focus:outline-none focus:ring-2 focus:ring-cyan-400">
+                <button id="sendMsg" type="button"
+                        class="px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90">
+                  Send
+                </button>
+              </div>
+            </div>
+
+            <!-- Hidden field actually sent to Formspree -->
+            <textarea id="message" name="message"></textarea>
           </div>
 
           <!-- Controls: urgency + actions -->
           <div class="mt-4 grid grid-cols-1 sm:grid-cols-[auto,1fr] items-center gap-3">
             <div class="justify-self-center sm:justify-self-start">
               <div id="urgencySelect" class="urg urg-standard relative inline-block flex-shrink-0">
+                <label for="message" class="block text-gray-300 mb-1 text-sm"></label>
                 <input type="hidden" name="urgency" id="urgVal" value="Standard (2–3 days)"/>
                 <button type="button"
                         class="urg-btn inline-flex items-center gap-2 rounded-xl px-4 py-2 font-medium cursor-pointer shadow hover:opacity-95 transition">
@@ -305,7 +343,7 @@
 
             <h4 class="text-xl font-semibold">Request successfully submitted</h4>
             <p class="text-gray-300 text-sm max-w-md">
-              Pipeline steps: dataset discovery → subsetting → reprojection → export.
+              Starting working pipeline... dataset discovery → subsetting → reprojection → export.
             </p>
           </div>
         </div>
@@ -500,6 +538,87 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+</script>
+
+<script type="module">
+const API_URL = "https://morning-hat-601d.oleg-belkoro.workers.dev/"; // or "/api/clarify"
+
+// Grab UI
+const form      = document.querySelector("form#request");
+const hiddenMsg = document.getElementById("message");
+const chatLog   = document.getElementById("chatLog");
+const chatInput = document.getElementById("chatInput");
+const sendBtn   = document.getElementById("sendMsg");
+
+const turns = [];
+let lastResult = null;
+
+function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+function addMsg(role, text){
+  const el = document.createElement("div");
+  el.className = `msg ${role==='user'?'user':'bot'}`;
+  el.innerHTML = `<div class="bubble"><div class="role">${role==='user'?'You':'TerraScope Assitant'}</div><div>${escapeHtml(text)}</div></div>`;
+  chatLog.appendChild(el);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+function pushUser(text){ turns.push({ role:"user", content:text }); addMsg("user", text); }
+function pushBot(text){ turns.push({ role:"assistant", content:text }); addMsg("bot", text); }
+
+async function askLLM(userText){
+  const payloadTurns = [...turns];
+  if (userText) payloadTurns.push({ role:"user", content:userText });
+
+  const resp = await fetch(API_URL, {
+    method: "POST",
+    headers: { "content-type":"application/json" },
+    body: JSON.stringify({ turns: payloadTurns })
+  });
+  if (!resp.ok) throw new Error(await resp.text().catch(()=>resp.statusText));
+
+  const data = await resp.json(); // {ready, ask, fields, summary}
+  lastResult = data;
+
+  if (data.ready) {
+    const f = data.fields || {};
+    const lines = [
+      `Variable: ${f.variable || "?"}`,
+      `Area: ${f.area || "?"}`,
+      `Time: ${f.tStart || "?"} → ${f.tEnd || "?"}`,
+      f.cadence ? `Cadence: ${f.cadence}` : "",
+      f.format  ? `Format: ${f.format}`   : ""
+    ].filter(Boolean);
+    const transcript = [...turns, {role:"assistant", content: JSON.stringify(data)}]
+      .map(t => `${t.role.toUpperCase()}: ${typeof t.content==='string'?t.content:JSON.stringify(t.content)}`)
+      .join("\n");
+    hiddenMsg.value = lines.join("\n") + `\n\n---\nConversation:\n${transcript}`;
+    pushBot(data.summary || "Looks complete. You can submit now.");
+  } else {
+    pushBot(data.ask || "What else should I know?");
+  }
+}
+
+function handleSend(){
+  const v = chatInput.value.trim();
+  if (!v) return;
+  chatInput.value = "";
+  pushUser(v);
+  askLLM(v).catch(err => pushBot(`(AI error) ${err.message}`));
+}
+
+sendBtn?.addEventListener("click", handleSend);
+chatInput?.addEventListener("keydown", (e)=>{
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+});
+
+// Gate form submit until AI says it's ready
+form?.addEventListener("submit", (e)=>{
+  if (!lastResult || !lastResult.ready) {
+    e.preventDefault();
+    pushBot("I’m still missing details. Please answer the last question, then submit.");
+  }
+});
+
+pushBot("Hi! I'm TerraScope Assistant. Tell me what you need. I’ll ask for any missing details.");
 </script>
 
 
