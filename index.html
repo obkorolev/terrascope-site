@@ -72,30 +72,28 @@
     /* Processing card is transparent */
     #processingCard { background: transparent; }
 
-   /* Base arc style */
-    .ring-arc {
-      stroke-dasharray: 314;     /* full circumference for r=50 */
-      stroke-dashoffset: 314;    /* start hidden */
-      animation: dashAnim 2s ease-in-out infinite;
+   /* Cycle 4 icons; each shows ~2s with a subtle scale-in */
+    .icon{
+      opacity: 0;
+      transform: scale(.96);
+      animation: iconCycle 8s linear infinite;
+    }
+    .icon--discovery  { animation-delay: 0s; }
+    .icon--subsetting { animation-delay: 2s; }
+    .icon--reproject  { animation-delay: 4s; }
+    .icon--export     { animation-delay: 6s; }
+
+    @keyframes iconCycle{
+      0%   { opacity: 0; transform: scale(.96); }
+      5%   { opacity: 1; transform: scale(1); }
+      20%  { opacity: 1; transform: scale(1); }
+      25%  { opacity: 0; transform: scale(1.04); }
+      100% { opacity: 0; transform: scale(1.04); }
     }
 
-    .ring-rotor {
-      transform-origin: 60px 60px;
-      animation: rotateAnim 2s linear infinite;
-    }
-
-    /* Arc "head/tail" loader */
-    @keyframes dashAnim {
-      0%   { stroke-dashoffset: 314; }   /* invisible */
-      50%  { stroke-dashoffset: 0; }     /* fully drawn */
-      100% { stroke-dashoffset: 314; }   /* invisible again */
-    }
-
-    /* Continuous clockwise spin */
-    @keyframes rotateAnim {
-      0%   { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    /* subtle internals */
+    @keyframes ants   { to { stroke-dashoffset: -12 } }
+    @keyframes orbit  { to { transform: rotate(360deg); } }
 
     /* Urgency dropdown theme via CSS vars */
     .urg { --pill-bg: rgba(255,255,255,.06); --pill-border: rgba(255,255,255,.18); --hover-bg: rgba(255,255,255,.14); }
@@ -224,28 +222,95 @@
           </div>
         </form>
 
-        <!-- PROCESSING — glass card that exactly replaces the form -->
+        <!-- PROCESSING — glass card that replaces the form (no ring, bigger icons) -->
         <div id="processingCard" class="hidden glass-card reflection p-8 mt-6 text-center min-h-[18rem]">
-          <div class="flex flex-col items-center gap-5">
-            <div class="relative w-28 h-28">
-              <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
-                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="10"/>
+          <div class="flex flex-col items-center gap-6">
+            <div class="relative w-40 h-40">
+              <svg viewBox="0 0 120 120" class="absolute inset-0 w-full h-full" aria-hidden="true">
                 <defs>
-                  <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#22d3ee"/><stop offset="50%" stop-color="#60a5fa"/>
+                  <linearGradient id="uiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%"  stop-color="#22d3ee"/>
+                    <stop offset="50%" stop-color="#60a5fa"/>
                     <stop offset="100%" stop-color="#a78bfa"/>
                   </linearGradient>
+                  <style>
+                    .s { fill:none; stroke:url(#uiGrad); stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round }
+                    .n { fill:none; stroke:rgba(255,255,255,.26); stroke-width:2 }
+                  </style>
+                  <!-- clip for anything that must stay in a circle -->
+                  <clipPath id="lensClip">
+                    <circle cx="60" cy="60" r="28"/>
+                  </clipPath>
                 </defs>
-                <circle cx="60" cy="60" r="50" fill="none" stroke="url(#ringGrad)" stroke-width="10"
-                        stroke-linecap="round" class="ring-arc"/>
+
+                <!-- Center the icon set; larger scale -->
+                <g transform="translate(60,60) scale(1.6)">
+
+                  <!-- 1) DATASET DISCOVERY — upright magnifier + clean globe INSIDE lens -->
+                  <g class="icon icon--discovery">
+                    <!-- lens (we’ll draw the globe on the absolute canvas and clip) -->
+                    <circle class="s" cx="0" cy="0" r="18"/>
+                    <!-- handle upright (45°) -->
+                    <line class="s" x1="12" y1="12" x2="26" y2="26"/>
+
+                    <!-- globe clipped to the lens (no blur, just meridians/latitudes) -->
+                    <g transform="translate(0,0)">
+                      <g clip-path="url(#lensClip)">
+                        <!-- equator + tropics (very light) -->
+                        <ellipse class="n" cx="0" cy="0" rx="14" ry="0"/>  <!-- thin line (degenerate ellipse) -->
+                        <ellipse class="n" cx="0" cy="-5" rx="12" ry="0"/>
+                        <ellipse class="n" cx="0" cy="5"  rx="12" ry="0"/>
+                        <!-- meridians -->
+                        <path class="n" d="M0 -16c-6 6 -6 26 0 32"/>
+                        <path class="n" d="M0 -16c6 6 6 26 0 32"/>
+                      </g>
+                    </g>
+                  </g>
+
+                  <!-- 2) SUBSETTING — grid + marching-ants selection -->
+                  <g class="icon icon--subsetting">
+                    <rect class="s" x="-20" y="-20" width="40" height="40" rx="6"/>
+                    <g class="n" style="stroke-width:1.6">
+                      <path d="M-6 -20v40 M6 -20v40 M-20 -6h40 M-20 6h40" />
+                    </g>
+                    <rect class="s" x="-4" y="-4" width="16" height="16" rx="3"
+                          style="stroke-dasharray:6 6; animation:ants 1.2s linear infinite"/>
+                  </g>
+
+                  <!-- 3) REPROJECTION — globe + rotating orbit (NO arrow) -->
+                  <g class="icon icon--reproject">
+                    <circle class="s" cx="0" cy="0" r="16"/>
+                    <ellipse class="n" cx="0" cy="0" rx="12" ry="5.5"/>
+                    <path class="n" d="M0 -16c-5 5 -5 26 0 32"/>
+                    <path class="n" d="M0 -16c5 5 5 26 0 32"/>
+                    <g style="transform-origin:0 0; animation:orbit 6s linear infinite">
+                      <ellipse class="s" cx="0" cy="0" rx="22" ry="10" transform="rotate(-25)"/>
+                    </g>
+                  </g>
+
+                  <!-- 4) EXPORT — rotated 90° clockwise, STATIC arrow (no rotation) -->
+                  <g class="icon icon--export" transform="rotate(90)">
+                    <rect class="s" x="-16" y="-18" width="28" height="36" rx="5"/>
+                    <g class="n" style="stroke-width:1.6">
+                      <path d="M-12 -6h18 M-12 2h16 M-12 10h12"/>
+                    </g>
+                    <!-- outward arrow (static) -->
+                    <path class="s" d="M2 0h20"/>
+                    <path class="s" d="M18 -6l6 6 -6 6"/>
+                  </g>
+
+                </g>
               </svg>
             </div>
-            <h4 class="text-xl font-semibold">Analyzing your request…</h4>
+
+            <h4 class="text-xl font-semibold">Request successfully submitted</h4>
             <p class="text-gray-300 text-sm max-w-md">
-              Initializing pipelines: dataset discovery, subsetting, reprojection, export.
+              Pipeline steps: dataset discovery → subsetting → reprojection → export.
             </p>
           </div>
         </div>
+
+
       </div>
     </div>
   </section>
@@ -255,7 +320,7 @@
     <p class="text-center text-gray-400 text-xs md:text-sm tracking-wider mb-5">
       Data Sources & Technology We Use
     </p>
-    <div class="grid grid-cols-4 w-full">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 w-full">
       <div class="flex items-center justify-center h-16 md:h-20">
         <img src="./logos/google.png" alt="Google" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy">
       </div>
@@ -440,3 +505,27 @@ window.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
+
+<svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" aria-label="Export">
+  <defs>
+    <linearGradient id="grad-export" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"  stop-color="#22d3ee"/><stop offset="50%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <style>
+      .s { fill:none; stroke:url(#grad-export); stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round }
+      .n { stroke:rgba(255,255,255,.20) }
+      .pulse { transform-origin:70px 48px; animation:pulseOut 1.4s ease-in-out infinite }
+      @keyframes pulseOut { 0%{ transform:translateX(0) } 50%{ transform:translateX(6px) } 100%{ transform:translateX(0) } }
+    </style>
+  </defs>
+
+  <!-- document -->
+  <rect class="s" x="20" y="20" width="40" height="56" rx="6"/>
+  <path class="n" d="M28 36h24 M28 46h24 M28 56h18"/>
+
+  <!-- outward arrow -->
+  <g class="pulse">
+    <path class="s" d="M60 48h18"/>
+    <path class="s" d="M72 42l6 6 -6 6"/>
+  </g>
+</svg>
