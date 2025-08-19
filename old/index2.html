@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TerraScope — Satellite Data On Demand</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <style>
+    /* Map containers */
+    #leafletMapSheet, #areaPreviewMap { height:100%; min-height:320px; }
+    .leaflet-container { background: transparent; }
+
+    /* Slide-down sheet */
+    #areaSheet{
+      max-height:0; opacity:0; overflow:hidden;
+      transition:max-height .35s ease, opacity .35s ease;
+    }
+    #areaSheet.open{ max-height:560px; opacity:1; }
+  </style>
+  <style>
+    /* —— Navbar —— */
+    .navwrap{position:fixed;inset:0 0 auto 0;z-index:50}
+    .navbg{position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(to bottom,rgba(0,0,0,.65),rgba(0,0,0,0))}
+        
+    /* —— Hero —— */
+    .hero{position:relative;min-height:110vh;overflow:hidden;background:#000}
+    .hero .imgwrap{position:absolute;inset:0;overflow:hidden;z-index:0}
+    .hero img{
+      position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+      object-position:50% 105%;
+      transform-origin:center;
+      animation:kenburns 48s ease-in-out infinite alternate;
+      filter:saturate(1.05) contrast(1.05) brightness(.95);
+    }
+    @keyframes kenburns{0%{transform:scale(1.06) translateY(0%)}100%{transform:scale(1.09) translateY(-1.2%)}}
+      /* Pause hero FX when the area sheet is open */
+      .body--sheet-open .hero img,
+      .body--sheet-open .cinema::before,
+      .body--sheet-open .cinema::after,
+      .body--sheet-open .grain,
+      .body--form-active .hero img,
+      .body--form-active .cinema::before,
+      .body--form-active .cinema::after,
+      .body--form-active .grain {
+        animation-play-state: paused !important;
+      }
+
+      /* Keep remarks resize vertical-only; horizontal resize exaggerates artifacts. */
+      #remarks { resize: vertical; }
+      
+
+    .cinema{position:absolute;inset:-8%;pointer-events:none;mix-blend-mode:screen;opacity:.35;filter:blur(10px);z-index:1}
+    .cinema::before,.cinema::after{content:"";position:absolute;inset:0}
+    .cinema::before{
+      background:
+        radial-gradient(90% 70% at 20% 10%, rgba(160,220,255,.18), transparent 60%),
+        radial-gradient(100% 80% at 85% 35%, rgba(200,160,255,.16), transparent 60%);
+      animation:driftA 60s ease-in-out infinite;
+    }
+    .cinema::after{
+      background:conic-gradient(from 0deg at 60% 15%, rgba(120,200,255,.10),
+                 transparent 35%, rgba(200,160,255,.10) 65%, transparent 85%);
+      transform-origin:60% 15%;
+      animation:driftB 90s linear infinite;opacity:.45;
+    }
+    @keyframes driftA{0%{transform:translate3d(-1%,0,0) scale(1.02)}50%{transform:translate3d(1%,-1%,0) scale(1.03)}100%{transform:translate3d(-1%,0,0) scale(1.02)}}
+    @keyframes driftB{to{transform:rotate(360deg) scale(1.02)}}
+
+    .topfade{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.90),rgba(0,0,0,.45) 35%,rgba(0,0,0,0) 70%);z-index:2}
+    .botfade{position:absolute;left:0;right:0;bottom:0;height:22vh;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,1));z-index:2}
+
+    .grain{position:absolute;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:soft-light;z-index:1;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.10) 0 1px, transparent 1px 2px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.10) 0 1px, transparent 1px 2px);
+      animation:grainShift 6s steps(2) infinite}
+    @keyframes grainShift{50%{transform:translate3d(.6px,.6px,0)}}
+
+    /* Glass card + subtle reflection */
+    .glass-card{
+      position: relative; overflow: hidden;
+      backdrop-filter: blur(16px);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 1rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+    }
+    .glass-card.reflection::before{
+      content:""; position:absolute; top:-35%; left:-20%;
+      width:140%; height:60%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.22), rgba(255,255,255,0));
+      transform: rotate(-6deg); pointer-events:none;
+    }
+
+    /* Processing card is transparent */
+    #processingCard { background: transparent; }
+
+   /* Cycle 4 icons; each shows ~2s with a subtle scale-in */
+    .icon{
+      opacity: 0;
+      transform: scale(.96);
+      animation: iconCycle 8s linear infinite;
+    }
+    .icon--discovery  { animation-delay: 0s; }
+    .icon--subsetting { animation-delay: 2s; }
+    .icon--reproject  { animation-delay: 4s; }
+    .icon--export     { animation-delay: 6s; }
+
+    @keyframes iconCycle{
+      0%   { opacity: 0; transform: scale(.96); }
+      5%   { opacity: 1; transform: scale(1); }
+      20%  { opacity: 1; transform: scale(1); }
+      25%  { opacity: 0; transform: scale(1.04); }
+      100% { opacity: 0; transform: scale(1.04); }
+    }
+
+    /* subtle internals */
+    @keyframes ants   { to { stroke-dashoffset: -12 } }
+    @keyframes orbit  { to { transform: rotate(360deg); } }
+
+    /* Chat bubbles */
+    .chat-log{max-height:18rem;overflow:auto;scroll-behavior:smooth}
+    .msg{display:flex;gap:.6rem}
+    .msg+.msg{margin-top:.6rem}
+    .msg .bubble{padding:.6rem .8rem;border-radius:.8rem;max-width:90%}
+    .msg.user   .bubble{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18)}
+    .msg.bot    .bubble{background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.35)} /* greenish glass */
+    .msg .role{font-size:.7rem;opacity:.6}
+
+    /* Inline chips for missing items */
+    .chip{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .5rem;border-radius:999px;
+          background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);font-size:.75rem}
+
+    /* Hide the real textarea we submit to Formspree; we’ll fill it from chat */
+    #message{display:none}
+
+    /* Urgency dropdown theme via CSS vars */
+    .urg { --pill-bg: rgba(255,255,255,.06); --pill-border: rgba(255,255,255,.18); --hover-bg: rgba(255,255,255,.14); }
+    .urg-asap     { --pill-bg: rgba(255,159,67,.18);  --pill-border: rgba(255,159,67,.42);  --hover-bg: rgba(255,159,67,.22); }
+    .urg-standard { --pill-bg: rgba(34,197,94,.18);   --pill-border: rgba(34,197,94,.42);   --hover-bg: rgba(34,197,94,.22); }
+    .urg-norush   { --pill-bg: rgba(59,130,246,.18);  --pill-border: rgba(59,130,246,.42);  --hover-bg: rgba(59,130,246,.22); }
+
+    .urg-btn{
+      background: var(--pill-bg);
+      border: 1px solid var(--pill-border);
+      color: #000; /* you asked for black text */
+      backdrop-filter: blur(10px);
+    }
+    .urg-menu{
+      background: rgba(255,255,255,.08);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: .75rem;
+    }
+    .urg-opt.asap:hover     { background: rgba(255,159,67,.22);  }
+    .urg-opt.standard:hover { background: rgba(34,197,94,.22);   }
+    .urg-opt.norush:hover   { background: rgba(59,130,246,.22);  }
+    .urg-open .urg-caret{ transform: rotate(180deg); }
+
+  </style>
+</head>
+<body class="bg-black text-white">
+
+  <!-- NAVBAR (non-fixed) -->
+  <header class="relative w-full bg-transparent">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="#hero" class="flex items-center gap-3">
+      <!-- update the path if the file lives elsewhere -->
+      <img src="./terrascope.jpg" alt="TerraScope logo"
+          class="h-8 md:h-9 w-auto object-contain" />
+      </a>
+      <nav class="space-x-8 text-sm">
+        <a href="#about" class="hover:text-cyan-400 transition">About</a>
+        <a href="#request" class="hover:text-cyan-400 transition">Request Data</a>
+      </nav>
+    </div>
+    <div class="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/50 to-transparent"></div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="imgwrap">
+      <img src="Gemini_Generated_Image_epc5w4epc5w4epc5.jpg" alt="Earth from space"/>
+    </div>
+    <div class="topfade"></div>
+    <div class="cinema"></div>
+    <div class="grain"></div>
+    <div class="botfade"></div>
+
+    <!-- extra top darkening for text -->
+    <div class="absolute inset-x-0 top-0 z-20" style="height: 400px; background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0));"></div>
+
+    <div class="relative z-30 max-w-6xl mx-auto px-6 pt-20 md:pt-20 text-center">
+      <h1 class="text-5xl md:text-7xl font-normal tracking-tight leading-tight
+                 bg-gradient-to-r from-cyan-300 to-purple-300 bg-clip-text text-transparent">
+        AI Processed Satellite Data,<wbr> Delivered
+      </h1>
+
+      <p class="mt-8 text-2xl md:text-xl font-bold text-gray-100 max-w-4xl mx-auto">
+        From plain language requests to Oceanographic Datasets — ready to use in your inbox.
+      </p>
+
+      <!-- FUSED REQUEST FORM (upper only) -->
+      <div class="mt-8 mx-auto max-w-3xl">
+        <form id="request" action="https://formspree.io/f/xzzvqjyq" method="POST"
+              class="glass-card reflection p-4 md:p-5 space-y-4 text-left min-h-[18rem]">
+
+          <!-- Honeypot -->
+          <input type="text" name="_gotcha" class="hidden" tabindex="-1" autocomplete="off"/>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label for="name" class="block text-gray-300 mb-1 text-sm">Your Name</label>
+              <input id="name" name="name" required
+                    class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+            </div>
+            <div>
+              <label for="email" class="block text-gray-300 mb-1 text-sm">Email Address</label>
+              <input id="email" type="email" name="_replyto" required
+                    class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+            </div>
+          </div>
+
+          <!-- CHAT ASSISTANT replaces the free textarea -->
+          <div>
+            <label class="block text-gray-300 mb-1 text-sm">Describe the Data You Need</label>
+
+            <div class="rounded-xl border border-white/20 bg-white/5">
+              <!-- Transcript -->
+              <div id="chatLog" class="chat-log p-3 space-y-2">
+                <!-- initial assistant message -->
+                <div class="msg bot">
+                </div>
+              </div>
+
+              <!-- Composer -->
+              <div class="flex items-end gap-2 p-3 border-t border-white/10">
+                <input id="chatInput" type="text" autocomplete="off"
+                      placeholder="e.g., Monthly SST for Gulf of Cádiz, Jan–Jun 2023, CSV + map"
+                      class="flex-1 rounded-lg px-3 py-2 bg-white/5 border border-white/20
+                              focus:outline-none focus:ring-2 focus:ring-cyan-400">
+                <button id="sendMsg" type="button"
+                        class="px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90">
+                  Send
+                </button>
+              </div>
+            </div>
+            <div class="mt-3">
+              <label for="remarks" class="block text-gray-300 mb-1 text-sm">Remarks (optional)</label>
+              <textarea id="remarks" name="remarks" rows="3"
+                        class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20
+                              focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        placeholder="Any constraints, references, links, preferred product IDs, etc."></textarea>
+            </div>
+
+            <!-- Hidden field actually sent to Formspree -->
+            <textarea id="message" name="message"></textarea>
+          </div>
+
+          <!-- Controls: urgency + actions -->
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-[auto,1fr] items-center gap-3">
+            <div class="justify-self-center sm:justify-self-start">
+              <div id="urgencySelect" class="urg urg-standard relative inline-block flex-shrink-0">
+                <label for="message" class="block text-gray-300 mb-1 text-sm"></label>
+                <input type="hidden" name="urgency" id="urgVal" value="Standard (2–3 days)"/>
+                <button type="button"
+                        class="urg-btn inline-flex items-center gap-2 rounded-xl px-4 py-2 font-medium cursor-pointer shadow hover:opacity-95 transition">
+                  <span class="urg-label">Standard (2–3 days)</span>
+                  <svg class="urg-caret w-4 h-4 transition-transform" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+                <!-- Menu -->
+                <ul id="urgMenu" class="urg-menu absolute left-0 mt-2 w-56 rounded-xl p-1 shadow-xl hidden">
+                  <li class="urg-opt asap     rounded-lg px-3 py-2 text-sm text-black cursor-pointer" data-value="ASAP">ASAP</li>
+                  <li class="urg-opt standard rounded-lg px-3 py-2 text-sm text-black cursor-pointer" data-value="Standard (2–3 days)">Standard (2–3 days)</li>
+                  <li class="urg-opt norush   rounded-lg px-3 py-2 text-sm text-black cursor-pointer" data-value="No rush">No rush</li>
+                </ul>
+              </div>
+            </div>
+
+            <input type="hidden" id="area_bbox" name="area_bbox" />
+            <!-- Inline preview (appears after user picks area) -->
+            <div id="areaPreview" class="hidden mt-3 rounded-xl border border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
+              <div class="flex items-center justify-between px-3 py-2 border-b border-white/10">
+                <span class="text-xs text-gray-300">Selected Area</span>
+                <button id="editAreaBtn" type="button" class="text-xs text-cyan-300 hover:text-cyan-200 underline">
+                  Edit on map
+                </button>
+              </div>
+              <div id="areaPreviewMap" class="w-full h-40"></div>
+              <div class="px-3 py-2 text-xs text-gray-300 border-t border-white/10">
+                <span id="bboxLabelInline">—</span>
+              </div>
+            </div>
+            <!-- Map picker trigger -->
+            <div class="mt-2 text-center">
+              <button id="openAreaPicker" type="button"
+                      class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium
+                            bg-white/10 hover:bg-white/20 transition">
+                Select Area on Map
+              </button>
+              <!-- slide-down glass sheet -->
+              <div id="areaSheet" class="mt-0 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-2xl">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                  <h4 class="text-sm md:text-base font-semibold">Pick Area (draw a rectangle)</h4>
+                  <div class="flex gap-2">
+                    <button id="resetBbox" type="button" class="text-xs px-2 py-1 bg-white/10 hover:bg-white/20 rounded">Reset</button>
+                    <button id="closeSheetBtn" type="button" class="text-xs px-2 py-1 bg-white/10 hover:bg-white/20 rounded">Close</button>
+                  </div>
+                </div>
+
+                <div class="relative h-[360px]">
+                  <div id="leafletMapSheet" class="absolute inset-0 w-full h-full"></div>
+                </div>
+
+                <div class="flex items-center justify-between gap-3 px-4 py-3 border-t border-white/10">
+                  <div id="bboxLabel" class="text-xs text-gray-300 truncate">No selection yet.</div>
+                  <button id="useBbox" type="button"
+                          class="px-3 py-2 text-sm rounded-lg font-semibold
+                                bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90">
+                    Ready
+                  </button>
+                </div>
+              </div>
+
+              <!-- keep both hidden fields so you get numeric + cardinal -->
+              <input type="hidden" id="area_bbox_cardinal" name="area_bbox_cardinal" />
+
+            </div>
+
+            <div class="sm:col-span-1 flex justify-center sm:justify-end gap-3">
+              <input type="hidden" name="_subject" id="subject" value="TerraScope request"/>
+              <button id="submitBtn" type="submit"
+                      class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-semibold
+                            bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90 transition">
+                Submit Request
+              </button>
+              <button type="button" id="clearBtn"
+                      class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
+                Clear
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- PROCESSING — glass card that replaces the form (no ring, bigger icons) -->
+        <div id="processingCard" class="hidden glass-card reflection p-8 mt-6 text-center min-h-[18rem]">
+          <div class="flex flex-col items-center gap-6">
+            <div class="relative w-40 h-40">
+              <svg viewBox="0 0 120 120" class="absolute inset-0 w-full h-full" aria-hidden="true">
+                <defs>
+                  <linearGradient id="uiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%"  stop-color="#22d3ee"/>
+                    <stop offset="50%" stop-color="#60a5fa"/>
+                    <stop offset="100%" stop-color="#a78bfa"/>
+                  </linearGradient>
+                  <style>
+                    .s { fill:none; stroke:url(#uiGrad); stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round }
+                    .n { fill:none; stroke:rgba(255,255,255,.26); stroke-width:2 }
+                  </style>
+                  <!-- clip for anything that must stay in a circle -->
+                  <clipPath id="lensClip">
+                    <circle cx="60" cy="60" r="28"/>
+                  </clipPath>
+                </defs>
+
+                <!-- Center the icon set; larger scale -->
+                <g transform="translate(60,60) scale(1.6)">
+
+                  <!-- 1) DATASET DISCOVERY — upright magnifier + clean globe INSIDE lens -->
+                  <g class="icon icon--discovery">
+                    <!-- lens (we’ll draw the globe on the absolute canvas and clip) -->
+                    <circle class="s" cx="0" cy="0" r="18"/>
+                    <!-- handle upright (45°) -->
+                    <line class="s" x1="12" y1="12" x2="26" y2="26"/>
+
+                    <!-- globe clipped to the lens (no blur, just meridians/latitudes) -->
+                    <g transform="translate(0,0)">
+                      <g clip-path="url(#lensClip)">
+                        <!-- equator + tropics (very light) -->
+                        <ellipse class="n" cx="0" cy="0" rx="14" ry="0"/>  <!-- thin line (degenerate ellipse) -->
+                        <ellipse class="n" cx="0" cy="-5" rx="12" ry="0"/>
+                        <ellipse class="n" cx="0" cy="5"  rx="12" ry="0"/>
+                        <!-- meridians -->
+                        <path class="n" d="M0 -16c-6 6 -6 26 0 32"/>
+                        <path class="n" d="M0 -16c6 6 6 26 0 32"/>
+                      </g>
+                    </g>
+                  </g>
+
+                  <!-- 2) SUBSETTING — grid + marching-ants selection -->
+                  <g class="icon icon--subsetting">
+                    <rect class="s" x="-20" y="-20" width="40" height="40" rx="6"/>
+                    <g class="n" style="stroke-width:1.6">
+                      <path d="M-6 -20v40 M6 -20v40 M-20 -6h40 M-20 6h40" />
+                    </g>
+                    <rect class="s" x="-4" y="-4" width="16" height="16" rx="3"
+                          style="stroke-dasharray:6 6; animation:ants 1.2s linear infinite"/>
+                  </g>
+
+                  <!-- 3) REPROJECTION — globe + rotating orbit (NO arrow) -->
+                  <g class="icon icon--reproject">
+                    <circle class="s" cx="0" cy="0" r="16"/>
+                    <ellipse class="n" cx="0" cy="0" rx="12" ry="5.5"/>
+                    <path class="n" d="M0 -16c-5 5 -5 26 0 32"/>
+                    <path class="n" d="M0 -16c5 5 5 26 0 32"/>
+                    <g style="transform-origin:0 0; animation:orbit 6s linear infinite">
+                      <ellipse class="s" cx="0" cy="0" rx="22" ry="10" transform="rotate(-25)"/>
+                    </g>
+                  </g>
+
+                  <!-- 4) EXPORT — rotated 90° clockwise, STATIC arrow (no rotation) -->
+                  <g class="icon icon--export" transform="rotate(90)">
+                    <rect class="s" x="-16" y="-18" width="28" height="36" rx="5"/>
+                    <g class="n" style="stroke-width:1.6">
+                      <path d="M-12 -6h18 M-12 2h16 M-12 10h12"/>
+                    </g>
+                    <!-- outward arrow (static) -->
+                    <path class="s" d="M2 0h20"/>
+                    <path class="s" d="M18 -6l6 6 -6 6"/>
+                  </g>
+
+                </g>
+              </svg>
+            </div>
+
+            <h4 class="text-xl font-semibold">Request successfully submitted</h4>
+            <p class="text-gray-300 text-sm max-w-md">
+              Starting working pipeline... dataset discovery → subsetting → reprojection → export.
+            </p>
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+  </section>
+
+  <!-- LOGO STRIP (kept) -->
+  <section class="bg-black py-8">
+    <p class="text-center text-gray-400 text-xs md:text-sm tracking-wider mb-5">
+      Data Sources & Technology We Use
+    </p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 w-full">
+      <div class="flex items-center justify-center h-16 md:h-20">
+        <img src="./logos/google.png" alt="Google" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy">
+      </div>
+      <div class="flex items-center justify-center h-16 md:h-20">
+        <img src="./logos/openai.png" alt="OpenAI" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy">
+      </div>
+      <div class="flex items-center justify-center h-16 md:h-20">
+        <img src="./logos/copernicus.png" alt="Copernicus" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy">
+      </div>
+      <div class="flex items-center justify-center h-16 md:h-20">
+        <img src="./logos/esa.png" alt="ESA" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT (unchanged) -->
+  <section id="about" class="py-20 bg-black">
+    <div class="max-w-5xl mx-auto px-6 text-center">
+      <h3 class="text-3xl font-semibold text-cyan-400">How It Works</h3>
+      <p class="mt-4 text-gray-400 max-w-2xl mx-auto">
+        We translate plain-language requests into precise data pulls, process them, and deliver clean outputs (CSV, GeoTIFF, plots).
+      </p>
+
+      <div class="mt-12 grid gap-6 md:grid-cols-3">
+        <div class="bg-white/5 p-6 rounded-xl">
+          <img src="./icons/terra1.png" alt="Globe Icon" class="w-20 h-20 mx-auto mb-4 opacity-80">
+          <h4 class="font-semibold text-cyan-300 mb-1">1. Describe</h4>
+          <p class="text-gray-400 text-sm">Tell us what variable, where, and when.</p>
+        </div>
+        <div class="bg-white/5 p-6 rounded-xl">
+          <img src="./icons/terra2.png" alt="Globe Icon" class="w-20 h-20 mx-auto mb-4 opacity-80">
+          <h4 class="font-semibold text-cyan-300 mb-1">2. Prepare</h4>
+          <p class="text-gray-400 text-sm">We source, subset, reproject, and format.</p>
+        </div>
+        <div class="bg-white/5 p-6 rounded-xl">
+          <img src="./icons/terra3.png" alt="Globe Icon" class="w-20 h-20 mx-auto mb-4 opacity-80">
+          <h4 class="font-semibold text-cyan-300 mb-1">3. Deliver</h4>
+          <p class="text-gray-400 text-sm">Receive clean files + a short data brief.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="bg-white/5 py-6 text-center text-gray-500 text-sm">
+    © 2025 TerraScope. All rights reserved.
+  </footer>
+
+
+<!-- SCRIPTS BEGIN HERE! -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+  <!-- JS: AJAX submit + animation -->
+  <script>
+window.addEventListener('DOMContentLoaded', () => {
+  // ===== FORM =====
+  const form       = document.querySelector('form#request');
+  if (!form) return;
+
+  const nameEl     = document.getElementById('name');
+  const emailEl    = document.getElementById('email');
+  const msgEl      = document.getElementById('message');
+  const subjEl     = document.getElementById('subject');
+  const statusEl   = document.getElementById('statusText') || (()=>{ const p=document.createElement('p'); p.id='statusText'; p.className='text-sm text-red-300 mt-1'; form.appendChild(p); return p; })();
+  const btnEl      = document.getElementById('submitBtn');
+  const clearBtn   = document.getElementById('clearBtn');
+  const processing = document.getElementById('processingCard');
+
+  // ===== CUSTOM URGENCY DROPDOWN (PORTALED) =====
+  const urgWrap   = document.getElementById('urgencySelect');
+  const urgBtn    = urgWrap ? urgWrap.querySelector('.urg-btn')   : null;
+  let   urgMenu   = document.getElementById('urgMenu') || (urgWrap ? urgWrap.querySelector('.urg-menu') : null);
+  const urgLabel  = urgWrap ? urgWrap.querySelector('.urg-label') : null;
+  const urgHidden = document.getElementById('urgVal');
+
+  function setUrgency(val){
+    if (urgLabel)  urgLabel.textContent = val;
+    if (urgHidden) urgHidden.value = val;
+    if (!urgWrap) return;
+    urgWrap.classList.remove('urg-asap','urg-standard','urg-norush');
+    if (val.startsWith('ASAP'))         urgWrap.classList.add('urg-asap');
+    else if (val.startsWith('No rush')) urgWrap.classList.add('urg-norush');
+    else                                urgWrap.classList.add('urg-standard');
+  }
+
+  function ensurePortaled(){
+    if (!urgMenu || urgMenu.dataset.portaled) return;
+    document.body.appendChild(urgMenu);
+    urgMenu.dataset.portaled = '1';
+    urgMenu.style.position = 'fixed';
+    urgMenu.style.zIndex   = '2147483647';
+    urgMenu.style.margin   = '0';
+  }
+
+  function updateMenuPosition(){
+    if (!urgBtn || !urgMenu) return;
+    const r = urgBtn.getBoundingClientRect();
+    urgMenu.style.left     = Math.round(r.left) + 'px';
+    urgMenu.style.top      = Math.round(r.bottom + 8) + 'px';
+    urgMenu.style.minWidth = Math.max(r.width, 224) + 'px';
+  }
+
+  function openMenu(){
+    ensurePortaled();
+    updateMenuPosition();
+    urgMenu.classList.remove('hidden');
+    urgWrap && urgWrap.classList.add('urg-open');
+  }
+
+  function closeMenu(){
+    if (!urgMenu) return;
+    urgMenu.classList.add('hidden');
+    urgWrap && urgWrap.classList.remove('urg-open');
+  }
+
+  if (urgBtn && urgMenu){
+    urgBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (urgMenu.classList.contains('hidden')) openMenu(); else closeMenu();
+    });
+    document.addEventListener('click', (e) => {
+      if (!urgWrap.contains(e.target) && !urgMenu.contains(e.target)) closeMenu();
+    });
+    window.addEventListener('scroll', () => {
+      if (!urgMenu.classList.contains('hidden')) updateMenuPosition();
+    }, { passive:true });
+    window.addEventListener('resize', () => {
+      if (!urgMenu.classList.contains('hidden')) updateMenuPosition();
+    });
+
+    // Items (supports .urg-opt or .urg-item)
+    urgMenu.querySelectorAll('.urg-opt, .urg-item').forEach(li => {
+      li.addEventListener('click', () => { setUrgency(li.getAttribute('data-value')); closeMenu(); });
+    });
+
+    // Init theme
+    setUrgency(urgHidden?.value || 'Standard (2–3 days)');
+  }
+
+  // ===== CLEAR =====
+  if (clearBtn){
+    clearBtn.addEventListener('click', () => {
+      if (nameEl)  nameEl.value = '';
+      if (emailEl) emailEl.value = '';
+      if (msgEl)   msgEl.value = '';
+      setUrgency('Standard (2–3 days)');
+      statusEl.textContent = '';
+      statusEl.classList.add('hidden');
+    });
+  }
+
+  // ===== SUBMIT (AJAX to Formspree) =====
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.classList.add('hidden');
+    if (btnEl){ btnEl.disabled = true; btnEl.textContent = 'Sending…'; }
+
+    // subject
+    const who = (nameEl?.value || 'New request').trim();
+    const urg = (urgHidden?.value || '').trim();
+    if (subjEl) subjEl.value = `TerraScope request — ${who} (${urg})`;
+
+    const endpoint = form.getAttribute('action');
+    const formData = new FormData(form);
+
+    try {
+      const res = await fetch(endpoint, { method: 'POST', headers: { 'Accept': 'application/json' }, body: formData });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || 'Failed to submit. Please try again.');
+      }
+      // Success → swap UI
+      form.classList.add('hidden');
+      processing.classList.remove('hidden');
+      
+    } catch (err) {
+      statusEl.textContent = err.message || 'Network error. Please try again.';
+      statusEl.classList.remove('hidden');
+    } finally {
+      if (btnEl){ btnEl.disabled = false; btnEl.textContent = 'Submit Request'; }
+    }
+  });
+});
+</script>
+
+<script type="module">
+/* ===== TerraScope chat client → Cloudflare Worker (GPT-5 Nano) + Area Picker ===== */
+
+const API_URL   = "https://morning-hat-601d.oleg-belkoro.workers.dev/"; // your Worker URL
+const form      = document.querySelector("form#request");
+const submitBtn = document.getElementById("submitBtn");
+const hiddenMsg = document.getElementById("message");
+const chatLog   = document.getElementById("chatLog");
+const chatInput = document.getElementById("chatInput");
+const sendBtn   = document.getElementById("sendMsg");
+const remarksEl = document.getElementById("remarks");
+
+const turns = [];          // transcript sent to the model
+let lastResult = null;     // {ready, missing, ask, fields, summary}
+let lastAsk    = "";       // dedupe identical asks
+let sending    = false;    // block double-sends
+
+/* ---------- UI helpers ---------- */
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function addMsg(role, text){
+  const wrap = document.createElement("div");
+  wrap.className = `msg ${role==='user'?'user':'bot'}`;
+  wrap.innerHTML = `
+    <div class="bubble">
+      <div class="role">${role==='user'?'You':'TerraScope'}</div>
+      <div>${escapeHtml(text)}</div>
+    </div>`;
+  chatLog.appendChild(wrap);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+function pushUser(text){ turns.push({ role:"user", content:text }); addMsg("user", text); }
+function pushBot(text){ turns.push({ role:"assistant", content:text }); addMsg("bot", text); }
+
+/* tiny tips if the same ask repeats */
+function hintFor(askText=""){
+  const t = askText.toLowerCase();
+  if (t.includes("area"))       return "Tip: select a region on the map (button below) or send bbox “lonW,latS to lonE,latN”.";
+  if (t.includes("start time")) return "Tip: use YYYY-MM or YYYY-MM-DD.";
+  if (t.includes("end time"))   return "Tip: use YYYY-MM or YYYY-MM-DD.";
+  if (t.includes("frequency"))  return "Tip: daily, weekly, monthly, seasonal.";
+  if (t.includes("format"))     return "Tip: CSV, NetCDF, GeoTIFF, PNG map.";
+  return null;
+}
+
+/* ---------- gating ---------- */
+function essentialsReady(fields){
+  if (!fields) return false;
+  return ["variable","area","tStart","tEnd"].every(k => fields[k] && String(fields[k]).trim().length);
+}
+function setSubmitState(){
+  const ready = lastResult && essentialsReady(lastResult.fields);
+  submitBtn.disabled = !ready;
+  submitBtn.classList.toggle("opacity-60", !ready);
+  submitBtn.classList.toggle("cursor-not-allowed", !ready);
+}
+
+/* ---------- build payload for Formspree ---------- */
+function buildHidden(){
+  const f = lastResult?.fields || {};
+  const lines = [
+    `Variable: ${f.variable || "?"}`,
+    `Area: ${f.area || "?"}`,
+    `Time: ${f.tStart || "?"} → ${f.tEnd || "?"}`,
+    f.cadence ? `Cadence: ${f.cadence}` : "",
+    f.format  ? `Format: ${f.format}`   : "",
+  ].filter(Boolean);
+
+  if (lastResult?.summary) lines.push(`\nSummary: ${lastResult.summary}`);
+
+  const rmk = (remarksEl?.value || "").trim();
+  if (rmk) lines.push(`\nRemarks: ${rmk}`);
+
+  const transcript = turns.map(t => `${t.role.toUpperCase()}: ${t.content}`).join("\n");
+  hiddenMsg.value = lines.join("\n") + `\n\n---\nConversation:\n${transcript}`;
+}
+
+/* ---------- call Worker / handle response ---------- */
+async function askLLM(userText){
+  if (sending) return;
+  sending = true;
+  sendBtn?.setAttribute("disabled","true");
+
+  const prevFields = lastResult?.fields || null;
+  const payloadTurns = [...turns];
+  if (userText) payloadTurns.push({ role:"user", content:userText });
+
+  try {
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "content-type":"application/json" },
+      body: JSON.stringify({ turns: payloadTurns, prevFields })
+    });
+    if (!resp.ok) throw new Error(await resp.text().catch(()=>resp.statusText));
+
+    const data = await resp.json(); // {ready, missing, ask, fields, summary}
+    lastResult = data;
+
+    if (data.ready) {
+      pushBot(data.summary || "Everything is ready, you can proceed to the submission of your request.");
+      lastAsk = ""; // reset repetition guard
+    } else {
+      const proposed = (data.ask || "Could you share that detail?").trim();
+      if (proposed === lastAsk) {
+        const tip = hintFor(proposed);
+        if (tip) pushBot(tip);
+      } else {
+        pushBot(proposed);
+        lastAsk = proposed;
+      }
+    }
+
+    setSubmitState();
+    buildHidden();
+  } catch (err) {
+    pushBot(`(AI error) ${err.message || String(err)}`);
+  } finally {
+    sending = false;
+    sendBtn?.removeAttribute("disabled");
+  }
+}
+
+/* ---------- events ---------- */
+function handleSend(){
+  const v = chatInput.value.trim();
+  if (!v) return;
+  chatInput.value = "";
+  pushUser(v);
+  askLLM(v);
+}
+sendBtn?.addEventListener("click", handleSend);
+chatInput?.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+});
+
+/* Block submit unless essentials present */
+form?.addEventListener("submit", (e)=>{
+  if (!lastResult || !essentialsReady(lastResult.fields)) {
+    e.preventDefault();
+    pushBot("I’m still missing essential details (Variable, Area, Start/End Time). Please answer the last question, then submit.");
+    setSubmitState();
+    return;
+  }
+  buildHidden(); // final write
+});
+
+/* ---------- AREA PICKER (Leaflet + Draw) — slide-down sheet ---------- */
+
+const openPickerBtn = document.getElementById("openAreaPicker");
+const areaSheet     = document.getElementById("areaSheet");
+const closeSheetBtn = document.getElementById("closeSheetBtn");
+const useBboxBtn    = document.getElementById("useBbox");
+const resetBboxBtn  = document.getElementById("resetBbox");
+const bboxLabel     = document.getElementById("bboxLabel");
+
+const previewWrap   = document.getElementById("areaPreview");
+const previewMapEl  = document.getElementById("areaPreviewMap");
+const previewLabel  = document.getElementById("bboxLabelInline");
+const editAreaBtn   = document.getElementById("editAreaBtn");
+
+const areaHidden     = document.getElementById("area_bbox");
+const areaHiddenCard = document.getElementById("area_bbox_cardinal");
+
+/* Leaflet state */
+let map, drawn, drawControl, currentRect = null, bbox = null;
+let previewMap = null, previewRect = null;
+
+/* helpers */
+const round = n => Math.round(n * 10000) / 10000;
+const fmtLat = lat => `${Math.abs(lat).toFixed(4)}°${lat >= 0 ? 'N' : 'S'}`;
+const fmtLon = lon => `${Math.abs(lon).toFixed(4)}°${lon >= 0 ? 'E' : 'W'}`;
+
+function openSheet(){
+  document.body.classList.add("body--sheet-open");
+  areaSheet.classList.add("open");
+
+  const mapEl = document.getElementById("leafletMapSheet");
+
+  // When the map container has a real size, then init/resize Leaflet
+  const run = () => {
+    initMapIfNeeded();
+    if (map) {
+      map.invalidateSize(true);
+      // try again after layout settles
+      setTimeout(() => map.invalidateSize(true), 200);
+      setTimeout(() => map.invalidateSize(true), 700);
+
+      // restore previous rectangle if we had one
+      if (bbox && !currentRect) {
+        const bounds = L.latLngBounds([bbox.latS, bbox.lonW], [bbox.latN, bbox.lonE]);
+        currentRect = L.rectangle(bounds, { color:"#22d3ee", weight:2, fillOpacity:0.1 });
+        drawn.addLayer(currentRect);
+        map.fitBounds(bounds, { padding:[20,20] });
+      }
+    }
+  };
+
+  // If already visible and sized, go now
+  const sized = () => {
+    const r = mapEl.getBoundingClientRect();
+    return r.width > 50 && r.height > 50;
+  };
+  if (sized()) { run(); return; }
+
+  // Wait for real size using ResizeObserver (most robust)
+  let done = false;
+  const ro = new ResizeObserver(() => {
+    if (!done && sized()) {
+      done = true;
+      ro.disconnect();
+      run();
+    }
+  });
+  ro.observe(mapEl);
+
+  // Fallback in case RO doesn’t fire (rare)
+  setTimeout(() => {
+    if (!done) { done = true; ro.disconnect(); run(); }
+  }, 800);
+}
+function closeSheet(){
+  areaSheet.classList.remove("open");
+  document.body.classList.remove("body--sheet-open"); // ← resume background FX
+}
+
+// --- Pause hero FX when the request form is active (focus/resize) ---
+const requestFormEl = document.getElementById('request');
+const remarksBoxEl  = document.getElementById('remarks');
+
+function setFormActive(on) {
+  if (on) document.body.classList.add('body--form-active');
+  else    document.body.classList.remove('body--form-active');
+}
+
+// Focus in/out anywhere inside the form
+if (requestFormEl) {
+  requestFormEl.addEventListener('focusin', () => setFormActive(true));
+  requestFormEl.addEventListener('focusout', () => {
+    // Wait a tick—focus might just move to another control inside the form
+    setTimeout(() => {
+      const stillInside = requestFormEl.contains(document.activeElement);
+      if (!stillInside && !document.body.classList.contains('body--sheet-open')) {
+        setFormActive(false);
+      }
+    }, 0);
+  });
+}
+
+// While dragging the textarea resize handle (mouse or touch), pause FX
+function beginResizePause() { setFormActive(true); }
+function endResizePause() {
+  // Only drop the pause if the form isn't focused and the map sheet isn't open
+  const focusedInside = requestFormEl && requestFormEl.contains(document.activeElement);
+  if (!focusedInside && !document.body.classList.contains('body--sheet-open')) {
+    setFormActive(false);
+  }
+}
+remarksBoxEl?.addEventListener('mousedown', beginResizePause);
+remarksBoxEl?.addEventListener('touchstart', beginResizePause, { passive: true });
+window.addEventListener('mouseup', endResizePause);
+window.addEventListener('touchend', endResizePause, { passive: true });
+
+openPickerBtn?.addEventListener("click", openSheet);
+closeSheetBtn?.addEventListener("click", closeSheet);
+editAreaBtn?.addEventListener("click", openSheet);
+
+function initMapIfNeeded(){
+
+  const mapEl = document.getElementById("leafletMapSheet");
+  if (!mapEl || mapEl.getBoundingClientRect().height < 50) return;
+  if (map) { map.invalidateSize(); return; }
+
+  map = L.map("leafletMapSheet", { zoomControl: true });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap", maxZoom: 19
+  }).addTo(map);
+  map.setView([20,0], 2);
+
+  drawn = new L.FeatureGroup();
+  map.addLayer(drawn);
+
+  drawControl = new L.Control.Draw({
+    draw: {
+      polygon:false, polyline:false, circle:false, circlemarker:false, marker:false,
+      rectangle: { shapeOptions:{ color:"#22d3ee", weight:2, opacity:0.9, fillOpacity:0.1 } }
+    },
+    edit: { featureGroup: drawn, edit:true, remove:true }
+  });
+  map.addControl(drawControl);
+
+  // Create once, then disable the tool so it doesn't "stick"
+  map.on(L.Draw.Event.CREATED, (e) => {
+    if (currentRect) drawn.removeLayer(currentRect);
+    currentRect = e.layer; drawn.addLayer(currentRect);
+    updateBboxLabel();
+    try {
+      const handler = drawControl?._toolbars?.draw?._modes?.rectangle?.handler;
+      if (handler && handler.disable) handler.disable();
+    } catch(_) {}
+  });
+
+  map.on("draw:edited", updateBboxLabel);
+  map.on("draw:deleted", () => {
+    currentRect = null; bbox = null;
+    bboxLabel.textContent = "No selection yet.";
+  });
+
+  setTimeout(()=>map.invalidateSize(),200);
+}
+
+function updateBboxLabel(){
+  if (!currentRect) return;
+  const b  = currentRect.getBounds();
+  const sw = b.getSouthWest(), ne = b.getNorthEast();
+  const lonW = round(sw.lng), latS = round(sw.lat);
+  const lonE = round(ne.lng), latN = round(ne.lat);
+  bbox = { lonW, latS, lonE, latN };
+
+  const numeric  = `${lonW},${latS} to ${lonE},${latN}`;
+  const cardinal = `${fmtLon(lonW)}, ${fmtLat(latS)} to ${fmtLon(lonE)}, ${fmtLat(latN)}`;
+
+  bboxLabel.textContent   = cardinal;
+  areaHidden.value        = numeric;
+  areaHiddenCard.value    = cardinal;
+
+  if (!previewWrap.classList.contains("hidden")) {
+    previewLabel.textContent = cardinal;
+  }
+}
+
+resetBboxBtn?.addEventListener("click", () => {
+  if (drawn) drawn.clearLayers();
+  currentRect = null; bbox = null;
+  bboxLabel.textContent = "No selection yet.";
+  areaHidden.value = areaHiddenCard.value = "";
+  if (previewMap && previewRect) { previewMap.removeLayer(previewRect); previewRect = null; }
+});
+
+function showPreview(b){
+  if (!b) return;
+  previewWrap.classList.remove("hidden");
+  const cardinal = `${fmtLon(b.lonW)}, ${fmtLat(b.latS)} to ${fmtLon(b.lonE)}, ${fmtLat(b.latN)}`;
+  previewLabel.textContent = cardinal;
+
+  if (!previewMap){
+    previewMap = L.map(previewMapEl, { zoomControl:false, attributionControl:false });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18 }).addTo(previewMap);
+  }
+  const bounds = L.latLngBounds([b.latS, b.lonW], [b.latN, b.lonE]);
+  if (previewRect) previewMap.removeLayer(previewRect);
+  previewRect = L.rectangle(bounds, { color:"#22d3ee", weight:2, fillOpacity:0.1 }).addTo(previewMap);
+  previewMap.fitBounds(bounds, { padding:[10,10] });
+  setTimeout(()=>previewMap.invalidateSize(), 50);
+}
+
+useBboxBtn?.addEventListener("click", () => {
+  if (!bbox) { bboxLabel.textContent = "Draw a rectangle first."; return; }
+  const text = `Area (Lat, Lon): ${fmtLon(bbox.lonW)}, ${fmtLat(bbox.latS)} to ${fmtLon(bbox.lonE)}, ${fmtLat(bbox.latN)}`;
+  closeSheet();
+  showPreview(bbox);
+  pushUser(text);
+  askLLM(text);
+});
+
+
+/* ---------- init ---------- */
+pushBot("Tell me what you need. I’ll ask for any missing details.");
+setSubmitState();
+</script>
+
+
+
+
+
+</body>
+</html>
+
