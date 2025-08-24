@@ -14,6 +14,64 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
   <style>
+    /* Mobile: keep date fields narrow and centered */
+    @media (max-width: 640px) {
+      #request #start_date,
+      #request #end_date,
+      #request .flatpickr-alt {
+        display: block;
+        width: 100%;
+        max-width: 20rem; /* ≈320px; bump to 22rem if you want wider */
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
+    /* Hero title container + soft glow behind the text */
+    .hero-title{
+      position: relative;
+      letter-spacing: -0.015em;
+    }
+    .hero-title::after{
+      content:"";
+      position:absolute;
+      inset:-8% -6% auto -6%;
+      height:60%;
+      background: radial-gradient(120% 100% at 30% 40%,
+                  rgba(167,139,250,.28),
+                  rgba(34,211,238,.18) 40%,
+                  transparent 60%);
+      filter: blur(18px);
+      opacity:.6;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    /* Scale-style accent: animated conic gradient, light stroke, soft glow */
+    .hero-accent{
+      background: conic-gradient(from 210deg at 50% 50%,
+                  #a78bfa, #60a5fa, #22d3ee, #f472b6, #a78bfa);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+
+      /* subtle definition so it doesn’t look “flat” */
+      -webkit-text-stroke: 0.6px rgba(255,255,255,.22);
+      text-shadow:
+        0 0 24px rgba(147,112,219,.35),
+        0 0 48px rgba(34,211,238,.18);
+
+      animation: heroHue 12s ease-in-out infinite alternate;
+    }
+    @keyframes heroHue{
+      0%{ background-position: 0% 50%; }
+      100%{ background-position: 100% 50%; }
+    }
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      .hero-accent{ animation: none; }
+    }
+
     /* Map containers */
     #leafletMapSheet { height:100%; min-height:320px; }
     .leaflet-container { background: #0a0a0a; }
@@ -158,10 +216,10 @@
     <div class="absolute inset-x-0 top-0 z-20" style="height: 400px; background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0));"></div>
 
     <div class="relative z-30 max-w-5xl mx-auto px-6 pt-20 md:pt-20 text-center">
-      <h1 class="text-5xl md:text-7xl font-normal tracking-tight leading-tight bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 bg-clip-text text-transparent">
-        Processed Satellite Data,<wbr> Delivered
+      <h1 class="hero-title text-5xl md:text-7xl font-thin tracking-tight leading-tight text-white">
+        Processed <span class="hero-accent">Satellite Data</span> - Delivered
       </h1>
-      <p class="mt-8 text-2xl md:text-xl font-bold text-gray-100 max-w-4xl mx-auto">
+      <p class="mt-8 text-2xl md:text-xl font-normal text-gray-100 max-w-4xl mx-auto">
         From plain language requests to Oceanographic Datasets — ready to use in your inbox.
       </p>
 
@@ -440,14 +498,19 @@ window.addEventListener('DOMContentLoaded', () => {
   const startDateEl = document.getElementById("start_date");
   const endDateEl = document.getElementById("end_date");
   if (startDateEl && endDateEl) {
-      const fpEnd = flatpickr(endDateEl, {
-          altInput: true, altFormat: "M j, Y", dateFormat: "Y-m-d",
+      const fpEnd = flatpickr(end_date, {
+        altInput: true,
+        altInputClass: 'flatpickr-alt',
+        altFormat: "M j, Y",
+        dateFormat: "Y-m-d",
       });
-      const fpStart = flatpickr(startDateEl, {
-          altInput: true, altFormat: "M j, Y", dateFormat: "Y-m-d",
-          onChange: function(selectedDates, dateStr, instance) {
-              fpEnd.set('minDate', selectedDates[0]);
-          },
+
+      const fpStart = flatpickr(start_date, {
+        altInput: true,
+        altInputClass: 'flatpickr-alt',
+        altFormat: "M j, Y",
+        dateFormat: "Y-m-d",
+        onChange(selectedDates){ fpEnd.set('minDate', selectedDates[0]); },
       });
   }
 
