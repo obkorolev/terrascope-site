@@ -440,14 +440,7 @@ window.addEventListener('DOMContentLoaded', () => {
     urgMenu.style.top      = Math.round(r.bottom + 8) + 'px';
     urgMenu.style.minWidth = Math.max(r.width, 224) + 'px';
   }
-  // Find this function (in the first <script> block)
-  function openMenu(){
-    ensurePortaled();
-    updateMenuPosition();
-    urgMenu.classList.remove('hidden');
-    urgWrap && urgWrap.classList.add('urg-open');
-    document.body.classList.add('body--form-active'); // <-- ADD THIS LINE
-  }
+  function openMenu(){ ensurePortaled(); updateMenuPosition(); urgMenu.classList.remove('hidden'); urgWrap && urgWrap.classList.add('urg-open'); }
   function closeMenu(){ if (!urgMenu) return; urgMenu.classList.add('hidden'); urgWrap && urgWrap.classList.remove('urg-open'); }
   if (urgBtn && urgMenu){
     urgBtn.addEventListener('click', (e) => { e.stopPropagation(); if (urgMenu.classList.contains('hidden')) openMenu(); else closeMenu(); });
@@ -500,7 +493,6 @@ const turns = [];
 /* ---------- UI helpers ---------- */
 function escapeHtml(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function addMsg(role, text){
-  document.body.classList.add('body--form-active'); // <-- ADD THIS LINE
   const wrap = document.createElement("div");
   wrap.className = `msg ${role==='user'?'user':'bot'}`;
   wrap.innerHTML = `<div class="bubble"><div class="role">${role==='user'?'You':'TerraScope'}</div><div>${escapeHtml(text)}</div></div>`;
