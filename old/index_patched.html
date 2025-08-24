@@ -157,7 +157,7 @@
     <div class="botfade"></div>
     <div class="absolute inset-x-0 top-0 z-20" style="height: 400px; background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0));"></div>
 
-    <div class="relative z-30 max-w-5xl mx-auto px-6 pt-20 md:pt-20 text-center">
+    <div class="relative z-30 max-w-6xl mx-auto px-6 pt-20 md:pt-20 text-center">
       <h1 class="text-5xl md:text-7xl font-normal tracking-tight leading-tight bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 bg-clip-text text-transparent">
         Processed Satellite Data,<wbr> Delivered
       </h1>
@@ -186,7 +186,7 @@
 
           <div>
             <label for="message" class="block text-white-300 mb-1 text-sm">Describe the Data You Need</label>
-            <textarea id="message" name="message" rows="2" required
+            <textarea id="message" name="message" rows="5" required
                       class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
                       placeholder="Please be as specific as possible. Include the variable, desired format (e.g., CSV, GeoTIFF), and any other constraints."></textarea>
           </div>
@@ -196,11 +196,11 @@
               <!-- Date Pickers -->
               <div>
                   <label class="block text-white-300 mb-1 text-sm">Time Range</label>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 justify-center">
                       <input id="start_date" name="start_date" type="text" placeholder="Start Date" required
-                             class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+                             class="min-w-0 w-full max-w-xs mx-auto rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
                       <input id="end_date" name="end_date" type="text" placeholder="End Date" required
-                             class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+                             class="min-w-0 w-full max-w-xs mx-auto rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
                   </div>
               </div>
               <!-- Area Picker -->
