@@ -487,25 +487,23 @@ window.addEventListener('DOMContentLoaded', () => {
 // ===== DATE PICKER (FLATPICKR) LOGIC =====
   const startDateEl = document.getElementById("start_date");
   const endDateEl   = document.getElementById("end_date");
-
   if (startDateEl && endDateEl) {
-    // reuse the exact classes from the real inputs, so width/spacing match name/email
-    const baseStart = startDateEl.className + " flatpickr-alt";
-    const baseEnd   = endDateEl.className   + " flatpickr-alt";
-
-    const fpEnd = flatpickr(endDateEl, {
-      altInput: true,
-      altInputClass: baseEnd,               // keeps your width formatting
-      altFormat: "M j, Y",
-      dateFormat: "Y-m-d",
-    });
-
     const fpStart = flatpickr(startDateEl, {
       altInput: true,
-      altInputClass: baseStart,             // keeps your width formatting
-      altFormat: "M j, Y",
-      dateFormat: "Y-m-d",
+      altInputClass:
+        'flatpickr-alt w-full max-w-xs sm:max-w-none mx-auto rounded-xl px-3 py-2 ' +
+        'bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
+      altFormat: 'M j, Y',
+      dateFormat: 'Y-m-d',
       onChange(selectedDates){ fpEnd.set('minDate', selectedDates[0]); }
+    });
+    const fpEnd = flatpickr(endDateEl, {
+      altInput: true,
+      altInputClass:
+        'flatpickr-alt w-full max-w-xs sm:max-w-none mx-auto rounded-xl px-3 py-2 ' +
+        'bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
+      altFormat: 'M j, Y',
+      dateFormat: 'Y-m-d'
     });
   }
   
