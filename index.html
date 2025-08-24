@@ -498,19 +498,23 @@ window.addEventListener('DOMContentLoaded', () => {
   const startDateEl = document.getElementById("start_date");
   const endDateEl = document.getElementById("end_date");
   if (startDateEl && endDateEl) {
-      const fpEnd = flatpickr(end_date, {
+      const fpStart = flatpickr(startDateEl, {
         altInput: true,
-        altInputClass: 'flatpickr-alt',
-        altFormat: "M j, Y",
-        dateFormat: "Y-m-d",
+        altInputClass:
+          'flatpickr-alt w-full max-w-xs sm:max-w-none mx-auto rounded-xl px-3 py-2 ' +
+          'bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
+        altFormat: 'M j, Y',
+        dateFormat: 'Y-m-d',
+        onChange(selectedDates){ fpEnd.set('minDate', selectedDates[0]); }
       });
 
-      const fpStart = flatpickr(start_date, {
+      const fpEnd = flatpickr(endDateEl, {
         altInput: true,
-        altInputClass: 'flatpickr-alt',
-        altFormat: "M j, Y",
-        dateFormat: "Y-m-d",
-        onChange(selectedDates){ fpEnd.set('minDate', selectedDates[0]); },
+        altInputClass:
+          'flatpickr-alt w-full max-w-xs sm:max-w-none mx-auto rounded-xl px-3 py-2 ' +
+          'bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
+        altFormat: 'M j, Y',
+        dateFormat: 'Y-m-d'
       });
   }
 
