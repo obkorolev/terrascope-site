@@ -484,15 +484,27 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // ===== DATE PICKER (FLATPICKR) LOGIC =====
+// ===== DATE PICKER (FLATPICKR) LOGIC =====
   const startDateEl = document.getElementById("start_date");
   const endDateEl   = document.getElementById("end_date");
 
   if (startDateEl && endDateEl) {
+    // reuse the exact classes from the real inputs, so width/spacing match name/email
+    const baseStart = startDateEl.className + " flatpickr-alt";
+    const baseEnd   = endDateEl.className   + " flatpickr-alt";
+
     const fpEnd = flatpickr(endDateEl, {
-      altInput: true, altFormat: "M j, Y", dateFormat: "Y-m-d",
+      altInput: true,
+      altInputClass: baseEnd,               // keeps your width formatting
+      altFormat: "M j, Y",
+      dateFormat: "Y-m-d",
     });
+
     const fpStart = flatpickr(startDateEl, {
-      altInput: true, altFormat: "M j, Y", dateFormat: "Y-m-d",
+      altInput: true,
+      altInputClass: baseStart,             // keeps your width formatting
+      altFormat: "M j, Y",
+      dateFormat: "Y-m-d",
       onChange(selectedDates){ fpEnd.set('minDate', selectedDates[0]); }
     });
   }
