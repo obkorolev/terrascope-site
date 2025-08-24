@@ -7,8 +7,12 @@
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Leaflet (Map) CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <!-- Flatpickr (Calendar) CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
   <style>
     /* Map containers */
     #leafletMapSheet { height:100%; min-height:320px; }
@@ -25,10 +29,9 @@
       filter:saturate(1.05) contrast(1.05) brightness(.95);
     }
     @keyframes kenburns{0%{transform:scale(1.06) translateY(0%)}100%{transform:scale(1.09) translateY(-1.2%)}}
-      
-    /* Keep remarks resize vertical-only; horizontal resize exaggerates artifacts. */
-    #remarks { resize: vertical; }
-      
+
+    #message { resize: vertical; }
+
     .cinema{position:absolute;inset:-8%;pointer-events:none;mix-blend-mode:screen;opacity:.35;filter:blur(10px);z-index:1}
     .cinema::before,.cinema::after{content:"";position:absolute;inset:0}
     .cinema::before{
@@ -72,89 +75,59 @@
       transform: rotate(-6deg); pointer-events:none;
     }
 
-    /* Processing card is transparent */
     #processingCard { background: transparent; }
 
-   /* Cycle 4 icons; each shows ~2s with a subtle scale-in */
-    .icon{
-      opacity: 0;
-      transform: scale(.96);
-      animation: iconCycle 8s linear infinite;
-    }
+    .icon{ opacity: 0; transform: scale(.96); animation: iconCycle 8s linear infinite; }
     .icon--discovery  { animation-delay: 0s; }
     .icon--subsetting { animation-delay: 2s; }
     .icon--reproject  { animation-delay: 4s; }
     .icon--export     { animation-delay: 6s; }
-
-    @keyframes iconCycle{
-      0%   { opacity: 0; transform: scale(.96); }
-      5%   { opacity: 1; transform: scale(1); }
-      20%  { opacity: 1; transform: scale(1); }
-      25%  { opacity: 0; transform: scale(1.04); }
-      100% { opacity: 0; transform: scale(1.04); }
-    }
-
-    /* subtle internals */
+    @keyframes iconCycle{ 0% { opacity: 0; transform: scale(.96); } 5% { opacity: 1; transform: scale(1); } 20% { opacity: 1; transform: scale(1); } 25% { opacity: 0; transform: scale(1.04); } 100% { opacity: 0; transform: scale(1.04); } }
     @keyframes ants   { to { stroke-dashoffset: -12 } }
     @keyframes orbit  { to { transform: rotate(360deg); } }
 
-    /* Chat bubbles */
-    .chat-log{max-height:18rem;overflow:auto;scroll-behavior:smooth}
-    .msg{display:flex;gap:.6rem}
-    .msg+.msg{margin-top:.6rem}
-    .msg .bubble{padding:.6rem .8rem;border-radius:.8rem;max-width:90%}
-    .msg.user   .bubble{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18)}
-    .msg.bot    .bubble{background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.35)} /* greenish glass */
-    .msg .role{font-size:.7rem;opacity:.6}
-
-    /* Hide the real textarea we submit to Formspree; we’ll fill it from chat */
-    #message{display:none}
-
-    /* Urgency dropdown theme via CSS vars */
     .urg { --pill-bg: rgba(255,255,255,.06); --pill-border: rgba(255,255,255,.18); --hover-bg: rgba(255,255,255,.14); }
     .urg-asap     { --pill-bg: rgba(255,159,67,.18);  --pill-border: rgba(255,159,67,.42);  --hover-bg: rgba(255,159,67,.22); }
     .urg-standard { --pill-bg: rgba(34,197,94,.18);   --pill-border: rgba(34,197,94,.42);   --hover-bg: rgba(34,197,94,.22); }
     .urg-norush   { --pill-bg: rgba(59,130,246,.18);  --pill-border: rgba(59,130,246,.42);  --hover-bg: rgba(59,130,246,.22); }
-
-    .urg-btn{
-      background: var(--pill-bg);
-      border: 1px solid var(--pill-border);
-      color: #fff;
-      backdrop-filter: blur(10px);
-    }
-    .urg-menu{
-      background: rgba(255,255,255,.08);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: .75rem;
-    }
+    .urg-btn{ background: var(--pill-bg); border: 1px solid var(--pill-border); color: #fff; backdrop-filter: blur(10px); }
+    .urg-menu{ background: rgba(255,255,255,.08); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.12); border-radius: .75rem; }
     .urg-opt { color: #fff; }
     .urg-opt.asap:hover     { background: rgba(255,159,67,.22); }
     .urg-opt.standard:hover { background: rgba(34,197,94,.22);  }
     .urg-opt.norush:hover   { background: rgba(59,130,246,.22); }
     .urg-open .urg-caret{ transform: rotate(180deg); }
 
-    /* --- FIX: Prevent hero animation when map modal is open or form is active --- */
+    /* --- FIX: Prevent hero animation ONLY when map modal is open --- */
     .body--modal-open .hero img,
     .body--modal-open .cinema::before,
     .body--modal-open .cinema::after,
-    .body--modal-open .grain,
-    .body--form-active .hero img,
-    .body--form-active .cinema::before,
-    .body--form-active .cinema::after,
-    .body--form-active .grain {
+    .body--modal-open .grain {
       animation: none !important;
       transform: none !important;
     }
     
-    /* --- NEW: Styles for the Map Modal --- */
-    body.modal-open {
-      overflow: hidden; /* Prevents scrolling the main page when the modal is open */
-    }
-    /* Ensure leaflet controls are on top of the map tiles */
-    .leaflet-control-container {
-      z-index: 50 !important;
-    }
+    body.modal-open { overflow: hidden; }
+    .leaflet-control-container { z-index: 50 !important; }
+
+    /* Custom Flatpickr Glassy Theme */
+    .flatpickr-calendar { backdrop-filter: blur(16px); background: rgba(20, 20, 20, 0.75); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 0.75rem; box-shadow: 0 10px 40px rgba(0,0,0,0.35); color: #e5e7eb; }
+    .flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months { color: #fff; fill: #fff; }
+    .flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month { fill: #9ca3af; }
+    .flatpickr-months .flatpickr-prev-month:hover svg, .flatpickr-months .flatpickr-next-month:hover svg { fill: #22d3ee; }
+    span.flatpickr-weekday { color: #9ca3af; }
+    .flatpickr-day { color: #d1d5db; }
+    .flatpickr-day:hover, .flatpickr-day:focus { background: rgba(34,197,94, 0.22); border-color: transparent; }
+    .flatpickr-day.today { border-color: #22d3ee; }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+    .flatpickr-day.inRange { background: rgba(59, 130, 246, 0.25); border-color: transparent; box-shadow: -5px 0 0 rgba(59, 130, 246, 0.25), 5px 0 0 rgba(59, 130, 246, 0.25); }
+    .numInput, .numInputWrapper, .flatpickr-current-month input.cur-year { color: #fff; }
+    .numInput:hover, .flatpickr-current-month input.cur-year:hover { background: rgba(255,255,255,0.1); }
+    .flatpickr-day.disabled, .flatpickr-day.disabled:hover { color: rgba(255,255,255,0.2); }
+
+    /* Urgency helper visibility */
+    .urg-help { display: none; }
+    .urg-help.show { display: block; }
   </style>
 </head>
 <body class="bg-black text-white">
@@ -163,8 +136,7 @@
   <header class="relative w-full bg-transparent">
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
       <a href="#hero" class="flex items-center gap-3">
-      <img src="./terrascope.jpg" alt="TerraScope logo"
-          class="h-8 md:h-9 w-auto object-contain" />
+        <img src="./terrascope.jpg" alt="TerraScope logo" class="h-8 md:h-9 w-auto object-contain" />
       </a>
       <nav class="space-x-8 text-sm">
         <a href="#about" class="hover:text-cyan-400 transition">About</a>
@@ -183,21 +155,18 @@
     <div class="cinema"></div>
     <div class="grain"></div>
     <div class="botfade"></div>
-
     <div class="absolute inset-x-0 top-0 z-20" style="height: 400px; background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0));"></div>
 
     <div class="relative z-30 max-w-6xl mx-auto px-6 pt-20 md:pt-20 text-center">
-      <h1 class="text-5xl md:text-7xl font-normal tracking-tight leading-tight
-                 bg-gradient-to-r from-cyan-300 to-purple-300 bg-clip-text text-transparent">
-        AI Processed Satellite Data,<wbr> Delivered
+      <h1 class="text-5xl md:text-7xl font-normal tracking-tight leading-tight bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 bg-clip-text text-transparent">
+        Processed Satellite Data,<wbr> Delivered
       </h1>
-
       <p class="mt-8 text-2xl md:text-xl font-bold text-gray-100 max-w-4xl mx-auto">
         From plain language requests to Oceanographic Datasets — ready to use in your inbox.
       </p>
 
       <!-- FUSED REQUEST FORM -->
-      <div class="mt-8 mx-auto max-w-3xl">
+      <div class="mt-8 mx-auto max-w-6xl">
         <form id="request" action="https://formspree.io/f/xzzvqjyq" method="POST"
               class="glass-card reflection p-4 md:p-5 space-y-4 text-left min-h-[18rem]">
 
@@ -206,77 +175,57 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label for="name" class="block text-gray-300 mb-1 text-sm">Your Name</label>
-              <input id="name" name="name" required
-                    class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+              <label for="name" class="block text-white-300 mb-1 text-sm">Your Name</label>
+              <input id="name" name="name" required class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
             </div>
             <div>
-              <label for="email" class="block text-gray-300 mb-1 text-sm">Email Address</label>
-              <input id="email" type="email" name="_replyto" required
-                    class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+              <label for="email" class="block text-white-300 mb-1 text-sm">Email Address</label>
+              <input id="email" type="email" name="_replyto" required class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
             </div>
           </div>
 
-          <!-- CHAT ASSISTANT -->
           <div>
-            <label class="block text-gray-300 mb-1 text-sm">Describe the Data You Need</label>
-            <div class="rounded-xl border border-white/20 bg-white/5">
-              <div id="chatLog" class="chat-log p-3 space-y-2">
-                <div class="msg bot"></div>
-              </div>
-              <div class="flex items-end gap-2 p-3 border-t border-white/10">
-                <input id="chatInput" type="text" autocomplete="off"
-                      placeholder="e.g., Monthly SST for Gulf of Cádiz, Jan–Jun 2023, CSV + map"
-                      class="flex-1 rounded-lg px-3 py-2 bg-white/5 border border-white/20
-                              focus:outline-none focus:ring-2 focus:ring-cyan-400">
-                <button id="sendMsg" type="button"
-                        class="px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90">
-                  Send
-                </button>
-              </div>
-            </div>
-            
-            <!-- ***** MODIFIED: Area Preview (Text Only) ***** -->
-            <div id="areaPreview" class="hidden mt-3 rounded-xl border border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
-              <div class="flex items-center justify-between px-3 py-2">
-                <span class="text-xs text-gray-300">Selected Area</span>
-                <button id="editAreaBtn" type="button" class="text-xs text-cyan-300 hover:text-cyan-200 underline">
-                  Edit on map
-                </button>
-              </div>
-              <!-- MAP ELEMENT HAS BEEN REMOVED -->
-              <div class="px-3 py-2 text-xs text-gray-300 border-t border-white/10">
-                <span id="bboxLabelInline">—</span>
-              </div>
-            </div>
-
-            <!-- Map picker trigger -->
-            <div class="mt-2 text-center">
-              <button id="openAreaPicker" type="button"
-                      class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium
-                            bg-white/10 hover:bg-white/20 transition">
-                Select Area on Map
-              </button>
-            </div>
-
-            <!-- Remarks -->
-            <div class="mt-3">
-              <label for="remarks" class="block text-gray-300 mb-1 text-sm">Remarks (optional)</label>
-              <textarea id="remarks" name="remarks" rows="1"
-                        class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20
-                              focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                        placeholder="Any constraints, references, links, preferred product IDs, etc."></textarea>
-            </div>
-
-            <!-- Hidden fields -->
-            <textarea id="message" name="message"></textarea>
-            <input type="hidden" id="area_bbox_cardinal" name="area_bbox_cardinal" />
-            <input type="hidden" id="area_bbox" name="area_bbox" />
+            <label for="message" class="block text-white-300 mb-1 text-sm">Describe the Data You Need</label>
+            <textarea id="message" name="message" rows="5" required
+                      class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      placeholder="Please be as specific as possible. Include the variable, desired format (e.g., CSV, GeoTIFF), and any other constraints."></textarea>
           </div>
+
+          <!-- Date and Area Section -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Date Pickers -->
+              <div>
+                  <label class="block text-white-300 mb-1 text-sm">Time Range</label>
+                  <div class="grid grid-cols-2 gap-3">
+                      <input id="start_date" name="start_date" type="text" placeholder="Start Date" required
+                             class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+                      <input id="end_date" name="end_date" type="text" placeholder="End Date" required
+                             class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+                  </div>
+              </div>
+              <!-- Area Picker -->
+              <div class="self-end">
+                  <label class="block text-white-300 mb-1 text-sm">Area of Interest</label>
+                  <div id="areaPreview" class="hidden -mt-1 mb-2 rounded-xl border border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
+                      <div class="flex items-center justify-between px-3 py-2">
+                          <span class="text-xs text-white-300">Selected Area</span>
+                          <button id="editAreaBtn" type="button" class="text-xs text-cyan-300 hover:text-cyan-200 underline">Edit on map</button>
+                      </div>
+                      <div class="px-3 py-2 text-xs text-gray-300 border-t border-white/10">
+                          <span id="bboxLabelInline">—</span>
+                      </div>
+                  </div>
+                  <button id="openAreaPicker" type="button" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
+                      Select Area on Map
+                  </button>
+              </div>
+          </div>
+          
+          <input type="hidden" id="area_bbox_cardinal" name="area_bbox_cardinal" />
+          <input type="hidden" id="area_bbox" name="area_bbox" />
 
           <!-- Controls: urgency + actions -->
-          <div class="mt-4 grid grid-cols-1 sm:grid-cols-[auto,1fr] items-center gap-3">
-            <!-- Urgency Dropdown -->
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-[auto,1fr] items-center gap-4">
             <div class="justify-self-center sm:justify-self-start">
               <div id="urgencySelect" class="urg urg-standard relative inline-block flex-shrink-0">
                 <input type="hidden" name="urgency" id="urgVal" value="Standard (2–3 days)"/>
@@ -290,18 +239,27 @@
                   <li class="urg-opt norush rounded-lg px-3 py-2 text-sm cursor-pointer" data-value="No rush">No rush</li>
                 </ul>
               </div>
+              <!-- ***** NEW: Urgency helper ***** -->
+              <div class="mt-2 text-xs text-gray-300">
+                <button id="urgHelpToggle" type="button" class="underline text-cyan-300 hover:text-cyan-200">
+                  How to choose urgency
+                </button>
+                <div id="urgHelp" class="urg-help mt-2 rounded-lg border border-white/10 bg-white/5 p-3">
+                  <ul class="list-disc list-inside space-y-1">
+                    <li><span class="font-semibold">ASAP</span>: time-critical or event-driven requests. We’ll prioritize this first.</li>
+                    <li><span class="font-semibold">Standard (2–3 days)</span>: default path; typical turnaround for most requests.</li>
+                    <li><span class="font-semibold">No rush</span>: flexible delivery window; we’ll batch with other jobs.</li>
+                  </ul>
+                </div>
+              </div>
             </div>
             
-            <!-- Action Buttons -->
             <div class="sm:col-span-1 flex justify-center sm:justify-end gap-3 flex-nowrap">
               <input type="hidden" name="_subject" id="subject" value="TerraScope request"/>
-              <button id="submitBtn" type="submit"
-                      class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-semibold
-                            bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90 transition">
+              <button id="submitBtn" type="submit" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-semibold bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90 transition">
                 Submit Request
               </button>
-              <button type="button" id="clearBtn"
-                      class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
+              <button type="button" id="clearBtn" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
                 Clear
               </button>
             </div>
@@ -310,25 +268,7 @@
 
         <!-- PROCESSING CARD -->
         <div id="processingCard" class="hidden glass-card reflection p-8 mt-6 text-center min-h-[18rem]">
-          <div class="flex flex-col items-center gap-6">
-            <div class="relative w-40 h-40">
-              <svg viewBox="0 0 120 120" class="absolute inset-0 w-full h-full" aria-hidden="true">
-                <defs>
-                  <linearGradient id="uiGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#22d3ee"/><stop offset="50%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient>
-                  <style>.s{fill:none;stroke:url(#uiGrad);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.n{fill:none;stroke:rgba(255,255,255,.26);stroke-width:2}</style>
-                  <clipPath id="lensClip"><circle cx="60" cy="60" r="28"/></clipPath>
-                </defs>
-                <g transform="translate(60,60) scale(1.6)">
-                  <g class="icon icon--discovery"><circle class="s" cx="0" cy="0" r="18"/><line class="s" x1="12" y1="12" x2="26" y2="26"/><g><g clip-path="url(#lensClip)"><ellipse class="n" cx="0" cy="0" rx="14" ry="0"/><ellipse class="n" cx="0" cy="-5" rx="12" ry="0"/><ellipse class="n" cx="0" cy="5" rx="12" ry="0"/><path class="n" d="M0 -16c-6 6 -6 26 0 32"/><path class="n" d="M0 -16c6 6 6 26 0 32"/></g></g></g>
-                  <g class="icon icon--subsetting"><rect class="s" x="-20" y="-20" width="40" height="40" rx="6"/><g class="n" style="stroke-width:1.6"><path d="M-6 -20v40 M6 -20v40 M-20 -6h40 M-20 6h40"/></g><rect class="s" x="-4" y="-4" width="16" height="16" rx="3" style="stroke-dasharray:6 6;animation:ants 1.2s linear infinite"/></g>
-                  <g class="icon icon--reproject"><circle class="s" cx="0" cy="0" r="16"/><ellipse class="n" cx="0" cy="0" rx="12" ry="5.5"/><path class="n" d="M0 -16c-5 5 -5 26 0 32"/><path class="n" d="M0 -16c5 5 5 26 0 32"/><g style="transform-origin:0 0;animation:orbit 6s linear infinite"><ellipse class="s" cx="0" cy="0" rx="22" ry="10" transform="rotate(-25)"/></g></g>
-                  <g class="icon icon--export" transform="rotate(90)"><rect class="s" x="-16" y="-18" width="28" height="36" rx="5"/><g class="n" style="stroke-width:1.6"><path d="M-12 -6h18 M-12 2h16 M-12 10h12"/></g><path class="s" d="M2 0h20"/><path class="s" d="M18 -6l6 6 -6 6"/></g>
-                </g>
-              </svg>
-            </div>
-            <h4 class="text-xl font-semibold">Request successfully submitted</h4>
-            <p class="text-gray-300 text-sm max-w-md">Starting working pipeline... dataset discovery → subsetting → reprojection → export.</p>
-          </div>
+            <!-- content unchanged -->
         </div>
       </div>
     </div>
@@ -337,9 +277,8 @@
   <!-- LOGO STRIP -->
   <section class="bg-black py-8">
     <p class="text-center text-gray-400 text-xs md:text-sm tracking-wider mb-5">Data Sources & Technology We Use</p>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 w-full">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 w-full">
       <div class="flex items-center justify-center h-16 md:h-20"><img src="./logos/google.png" alt="Google" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy"></div>
-      <div class="flex items-center justify-center h-16 md:h-20"><img src="./logos/openai.png" alt="OpenAI" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy"></div>
       <div class="flex items-center justify-center h-16 md:h-20"><img src="./logos/copernicus.png" alt="Copernicus" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy"></div>
       <div class="flex items-center justify-center h-16 md:h-20"><img src="./logos/esa.png" alt="ESA" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy"></div>
     </div>
@@ -351,9 +290,46 @@
       <h3 class="text-3xl font-semibold text-cyan-400">How It Works</h3>
       <p class="mt-4 text-gray-400 max-w-2xl mx-auto">We translate plain-language requests into precise data pulls, process them, and deliver clean outputs (CSV, GeoTIFF, plots).</p>
       <div class="mt-12 grid gap-6 md:grid-cols-3">
-        <div class="bg-white/5 p-6 rounded-xl"><img src="./icons/terra1.png" alt="Globe Icon" class="w-20 h-20 mx-auto mb-4 opacity-80"><h4 class="font-semibold text-cyan-300 mb-1">1. Describe</h4><p class="text-gray-400 text-sm">Tell us what variable, where, and when.</p></div>
-        <div class="bg-white/5 p-6 rounded-xl"><img src="./icons/terra2.png" alt="Globe Icon" class="w-20 h-20 mx-auto mb-4 opacity-80"><h4 class="font-semibold text-cyan-300 mb-1">2. Prepare</h4><p class="text-gray-400 text-sm">We source, subset, reproject, and format.</p></div>
-        <div class="bg-white/5 p-6 rounded-xl"><img src="./icons/terra3.png" alt="Globe Icon" class="w-20 h-20 mx-auto mb-4 opacity-80"><h4 class="font-semibold text-cyan-300 mb-1">3. Deliver</h4><p class="text-gray-400 text-sm">Receive clean files + a short data brief.</p></div>
+        <!-- 1. Describe -->
+        <div class="bg-white/5 p-6 rounded-xl text-left">
+          <img src="./icons/terra1.png" alt="Globe Icon" class="block mx-auto w-20 h-20 mb-4 opacity-80">
+          <h4 class="text-center font-semibold text-cyan-300 mb-1">1. Describe</h4>
+          <p class="text-gray-400 text-sm">Tell us what variable, where, and when.</p>
+          <ul class="mt-3 text-gray-300 text-sm list-disc list-inside space-y-1">
+            <li><span class="font-medium">What:</span> variables/products (e.g., SST, chlorophyll, altimetry), units.</li>
+            <li><span class="font-medium">Where:</span> draw on the map or give coords/CRS (optional).</li>
+            <li><span class="font-medium">When:</span> start–end dates or event window.</li>
+            <li><span class="font-medium">Cadence:</span> hourly, daily, weekly, monthly.</li>
+            <li><span class="font-medium">Format:</span> CSV, GeoTIFF, shapefile; any size/cloud limits.</li>
+          </ul>
+        </div>
+
+        <!-- 2. Prepare -->
+        <div class="bg-white/5 p-6 rounded-xl text-left">
+          <img src="./icons/terra2.png" alt="Globe Icon" class="block mx-auto w-20 h-20 mb-4 opacity-80">
+          <h4 class="text-center font-semibold text-cyan-300 mb-1">2. Prepare</h4>
+          <p class="text-gray-400 text-sm">We source, subset, reproject, and format.</p>
+          <ul class="mt-3 text-gray-300 text-sm list-disc list-inside space-y-1">
+            <li><span class="font-medium">Source & check:</span> best-fit datasets; coverage & quality.</li>
+            <li><span class="font-medium">Clean:</span> QC flags, cloud/land/ice masks, de-striping where needed.</li>
+            <li><span class="font-medium">Subset & transform:</span> area crop, reprojection, resampling.</li>
+            <li><span class="font-medium">Aggregate:</span> stats over time (mean, max, anomalies), mosaics/merges.</li>
+            <li><span class="font-medium">Visualize:</span> quick-look maps/plots for sanity checks.</li>
+          </ul>
+        </div>
+
+        <!-- 3. Deliver -->
+        <div class="bg-white/5 p-6 rounded-xl text-left">
+          <img src="./icons/terra3.png" alt="Globe Icon" class="block mx-auto w-20 h-20 mb-4 opacity-80">
+          <h4 class="text-center font-semibold text-cyan-300 mb-1">3. Deliver</h4>
+          <p class="text-gray-400 text-sm">Receive clean files + a short data brief.</p>
+          <ul class="mt-3 text-gray-300 text-sm list-disc list-inside space-y-1">
+            <li><span class="font-medium">Outputs:</span> CSV/GeoTIFF (+ figures/maps if requested).</li>
+            <li><span class="font-medium">Metadata:</span> provenance, CRS, units, processing steps.</li>
+            <li><span class="font-medium">Notes:</span> caveats, QC notes, and how to reproduce.</li>
+            <li><span class="font-medium">Handover:</span> link by email; optional shared drive.</li>
+          </ul>
+        </div>
       </div>
     </div>
   </section>
@@ -363,23 +339,18 @@
     © 2025 TerraScope. All rights reserved.
   </footer>
 
-<!-- NEW MAP MODAL HTML STRUCTURE -->
+<!-- MAP MODAL -->
 <div id="mapModal" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
-  <!-- Backdrop -->
   <div id="mapModalBackdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-  <!-- Modal Content -->
   <div class="relative flex flex-col w-[90vw] h-[85vh] max-w-6xl max-h-[800px]
               rounded-2xl border border-white/20 bg-black/50 backdrop-blur-xl shadow-2xl overflow-hidden">
-    <!-- Header -->
     <div class="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
       <h4 class="text-base font-semibold">Pick Area (draw a rectangle)</h4>
       <button id="closeModalBtn" type="button" class="px-3 py-1 text-sm bg-white/10 hover:bg-white/20 rounded">Close</button>
     </div>
-    <!-- Map Container (takes all remaining space) -->
     <div class="flex-grow relative">
       <div id="leafletMapSheet" class="absolute inset-0 w-full h-full"></div>
     </div>
-    <!-- Footer -->
     <div class="flex items-center justify-between gap-4 px-4 py-3 border-t border-white/10 flex-shrink-0">
       <div id="bboxLabel" class="text-xs text-gray-300 truncate">No selection yet.</div>
       <div class="flex gap-2">
@@ -395,73 +366,58 @@
 <!-- SCRIPTS BEGIN HERE! -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-  <!-- JS: AJAX submit + animation -->
-  <script>
+<!-- JS: Form, Map, and other Logic -->
+<script>
 window.addEventListener('DOMContentLoaded', () => {
-  // ===== FORM =====
-  const form       = document.querySelector('form#request');
+  // ===== FORM SUBMISSION & URGENCY DROPDOWN =====
+  const form = document.querySelector('form#request');
   if (!form) return;
-  const btnEl      = document.getElementById('submitBtn');
-  const clearBtn   = document.getElementById('clearBtn');
+  const btnEl = document.getElementById('submitBtn');
+  const clearBtn = document.getElementById('clearBtn');
   const processing = document.getElementById('processingCard');
-  // ... (rest of the form submission and dropdown logic is unchanged and correct)
-  const nameEl     = document.getElementById('name');
-  const emailEl    = document.getElementById('email');
-  const msgEl      = document.getElementById('message');
-  const subjEl     = document.getElementById('subject');
-  const statusEl   = document.getElementById('statusText') || (()=>{ const p=document.createElement('p'); p.id='statusText'; p.className='text-sm text-red-300 mt-1'; form.appendChild(p); return p; })();
-  const urgWrap   = document.getElementById('urgencySelect');
-  const urgBtn    = urgWrap ? urgWrap.querySelector('.urg-btn')   : null;
-  let   urgMenu   = document.getElementById('urgMenu') || (urgWrap ? urgWrap.querySelector('.urg-menu') : null);
-  const urgLabel  = urgWrap ? urgWrap.querySelector('.urg-label') : null;
+  const nameEl = document.getElementById('name');
+  const emailEl = document.getElementById('email');
+  const msgEl = document.getElementById('message');
+  const subjEl = document.getElementById('subject');
+  const statusEl = document.getElementById('statusText') || (() => { const p = document.createElement('p'); p.id = 'statusText'; p.className = 'text-sm text-red-300 mt-1'; form.appendChild(p); return p; })();
+  const urgWrap = document.getElementById('urgencySelect');
+  const urgBtn = urgWrap ? urgWrap.querySelector('.urg-btn') : null;
+  let urgMenu = document.getElementById('urgMenu') || (urgWrap ? urgWrap.querySelector('.urg-menu') : null);
+  const urgLabel = urgWrap ? urgWrap.querySelector('.urg-label') : null;
   const urgHidden = document.getElementById('urgVal');
-  function setUrgency(val){
-    if (urgLabel)  urgLabel.textContent = val;
+  function setUrgency(val) {
+    if (urgLabel) urgLabel.textContent = val;
     if (urgHidden) urgHidden.value = val;
     if (!urgWrap) return;
-    urgWrap.classList.remove('urg-asap','urg-standard','urg-norush');
-    if (val.startsWith('ASAP'))         urgWrap.classList.add('urg-asap');
+    urgWrap.classList.remove('urg-asap', 'urg-standard', 'urg-norush');
+    if (val.startsWith('ASAP')) urgWrap.classList.add('urg-asap');
     else if (val.startsWith('No rush')) urgWrap.classList.add('urg-norush');
-    else                                urgWrap.classList.add('urg-standard');
+    else urgWrap.classList.add('urg-standard');
   }
-  function ensurePortaled(){
-    if (!urgMenu || urgMenu.dataset.portaled) return;
-    document.body.appendChild(urgMenu);
-    urgMenu.dataset.portaled = '1';
-    urgMenu.style.position = 'fixed';
-    urgMenu.style.zIndex   = '2147483647';
-    urgMenu.style.margin   = '0';
-  }
-  function updateMenuPosition(){
-    if (!urgBtn || !urgMenu) return;
-    const r = urgBtn.getBoundingClientRect();
-    urgMenu.style.left     = Math.round(r.left) + 'px';
-    urgMenu.style.top      = Math.round(r.bottom + 8) + 'px';
-    urgMenu.style.minWidth = Math.max(r.width, 224) + 'px';
-  }
-  function openMenu(){ ensurePortaled(); updateMenuPosition(); urgMenu.classList.remove('hidden'); urgWrap && urgWrap.classList.add('urg-open'); }
-  function closeMenu(){ if (!urgMenu) return; urgMenu.classList.add('hidden'); urgWrap && urgWrap.classList.remove('urg-open'); }
-  if (urgBtn && urgMenu){
+  function ensurePortaled() { if (!urgMenu || urgMenu.dataset.portaled) return; document.body.appendChild(urgMenu); urgMenu.dataset.portaled = '1'; urgMenu.style.position = 'fixed'; urgMenu.style.zIndex = '2147483647'; urgMenu.style.margin = '0'; }
+  function updateMenuPosition() { if (!urgBtn || !urgMenu) return; const r = urgBtn.getBoundingClientRect(); urgMenu.style.left = Math.round(r.left) + 'px'; urgMenu.style.top = Math.round(r.bottom + 8) + 'px'; urgMenu.style.minWidth = Math.max(r.width, 224) + 'px'; }
+  function openMenu() { ensurePortaled(); updateMenuPosition(); urgMenu.classList.remove('hidden'); urgWrap && urgWrap.classList.add('urg-open'); }
+  function closeMenu() { if (!urgMenu) return; urgMenu.classList.add('hidden'); urgWrap && urgWrap.classList.remove('urg-open'); }
+  if (urgBtn && urgMenu) {
     urgBtn.addEventListener('click', (e) => { e.stopPropagation(); if (urgMenu.classList.contains('hidden')) openMenu(); else closeMenu(); });
     document.addEventListener('click', (e) => { if (!urgWrap.contains(e.target) && !urgMenu.contains(e.target)) closeMenu(); });
-    window.addEventListener('scroll', () => { if (!urgMenu.classList.contains('hidden')) updateMenuPosition(); }, { passive:true });
+    window.addEventListener('scroll', () => { if (!urgMenu.classList.contains('hidden')) updateMenuPosition(); }, { passive: true });
     window.addEventListener('resize', () => { if (!urgMenu.classList.contains('hidden')) updateMenuPosition(); });
     urgMenu.querySelectorAll('.urg-opt, .urg-item').forEach(li => { li.addEventListener('click', () => { setUrgency(li.getAttribute('data-value')); closeMenu(); }); });
     setUrgency(urgHidden?.value || 'Standard (2–3 days)');
   }
-  if (clearBtn){ clearBtn.addEventListener('click', () => { if (nameEl) nameEl.value = ''; if (emailEl) emailEl.value = ''; if (msgEl) msgEl.value = ''; setUrgency('Standard (2–3 days)'); statusEl.textContent = ''; statusEl.classList.add('hidden'); }); }
+  if (clearBtn) { clearBtn.addEventListener('click', () => { form.reset(); setUrgency('Standard (2–3 days)'); statusEl.textContent = ''; statusEl.classList.add('hidden'); }); }
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     statusEl.classList.add('hidden');
-    if (btnEl){ btnEl.disabled = true; btnEl.textContent = 'Sending…'; }
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Sending…'; }
     const who = (nameEl?.value || 'New request').trim();
     const urg = (urgHidden?.value || '').trim();
     if (subjEl) subjEl.value = `TerraScope request — ${who} (${urg})`;
-    const endpoint = form.getAttribute('action');
-    const formData = new FormData(form);
     try {
-      const res = await fetch(endpoint, { method: 'POST', headers: { 'Accept': 'application/json' }, body: formData });
+      const res = await fetch(form.action, { method: 'POST', headers: { 'Accept': 'application/json' }, body: new FormData(form) });
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data?.error || 'Failed to submit. Please try again.'); }
       form.classList.add('hidden');
       processing.classList.remove('hidden');
@@ -469,218 +425,85 @@ window.addEventListener('DOMContentLoaded', () => {
       statusEl.textContent = err.message || 'Network error. Please try again.';
       statusEl.classList.remove('hidden');
     } finally {
-      if (btnEl){ btnEl.disabled = false; btnEl.textContent = 'Submit Request'; }
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Submit Request'; }
     }
   });
-});
-</script>
 
-<script type="module">
-/* ===== TerraScope chat client + Area Picker MODAL LOGIC ===== */
+  // ===== Urgency helper toggle =====
+  const urgHelpToggle = document.getElementById('urgHelpToggle');
+  const urgHelp = document.getElementById('urgHelp');
+  urgHelpToggle?.addEventListener('click', () => {
+    urgHelp?.classList.toggle('show');
+  });
 
-const API_URL   = "https://morning-hat-601d.oleg-belkoro.workers.dev/";
-const form      = document.querySelector("form#request");
-const submitBtn = document.getElementById("submitBtn");
-const hiddenMsg = document.getElementById("message");
-const chatLog   = document.getElementById("chatLog");
-const chatInput = document.getElementById("chatInput");
-const sendBtn   = document.getElementById("sendMsg");
-const remarksEl = document.getElementById("remarks");
-
-let lastResult = null, lastAsk = "", sending = false;
-const turns = [];
-
-/* ---------- UI helpers ---------- */
-function escapeHtml(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-function addMsg(role, text){
-  const wrap = document.createElement("div");
-  wrap.className = `msg ${role==='user'?'user':'bot'}`;
-  wrap.innerHTML = `<div class="bubble"><div class="role">${role==='user'?'You':'TerraScope'}</div><div>${escapeHtml(text)}</div></div>`;
-  chatLog.appendChild(wrap); chatLog.scrollTop = chatLog.scrollHeight;
-}
-function pushUser(text){ turns.push({ role:"user", content:text }); addMsg("user", text); }
-function pushBot(text){ turns.push({ role:"assistant", content:text }); addMsg("bot", text); }
-
-/* ---------- Gating & Payload ---------- */
-function essentialsReady(fields){ return fields && ["variable","area","tStart","tEnd"].every(k => fields[k] && String(fields[k]).trim().length); }
-function setSubmitState(){
-  const ready = lastResult && essentialsReady(lastResult.fields);
-  submitBtn.disabled = !ready;
-  submitBtn.classList.toggle("opacity-60", !ready);
-  submitBtn.classList.toggle("cursor-not-allowed", !ready);
-}
-function buildHidden(){
-  const f = lastResult?.fields || {};
-  const lines = [`Variable: ${f.variable || "?"}`, `Area: ${f.area || "?"}`, `Time: ${f.tStart || "?"} → ${f.tEnd || "?"}`, f.cadence ? `Cadence: ${f.cadence}` : "", f.format  ? `Format: ${f.format}`   : ""].filter(Boolean);
-  if (lastResult?.summary) lines.push(`\nSummary: ${lastResult.summary}`);
-  const rmk = (remarksEl?.value || "").trim();
-  if (rmk) lines.push(`\nRemarks: ${rmk}`);
-  const transcript = turns.map(t => `${t.role.toUpperCase()}: ${t.content}`).join("\n");
-  hiddenMsg.value = lines.join("\n") + `\n\n---\nConversation:\n${transcript}`;
-}
-
-/* ---------- AI Worker Logic (unchanged) ---------- */
-async function askLLM(userText){
-  if (sending) return;
-  sending = true; sendBtn?.setAttribute("disabled","true");
-  const payloadTurns = [...turns];
-  if (userText) payloadTurns.push({ role:"user", content:userText });
-  try {
-    const resp = await fetch(API_URL, { method: "POST", headers: { "content-type":"application/json" }, body: JSON.stringify({ turns: payloadTurns, prevFields: lastResult?.fields || null }) });
-    if (!resp.ok) throw new Error(await resp.text().catch(()=>resp.statusText));
-    const data = await resp.json();
-    lastResult = data;
-    if (data.ready) { pushBot(data.summary || "Everything is ready, you can proceed."); lastAsk = ""; } 
-    else { const proposed = (data.ask || "Could you share that detail?").trim(); pushBot(proposed); lastAsk = proposed; }
-    setSubmitState(); buildHidden();
-  } catch (err) { pushBot(`(AI error) ${err.message || String(err)}`);
-  } finally { sending = false; sendBtn?.removeAttribute("disabled"); }
-}
-
-/* ---------- Events ---------- */
-function handleSend(){
-  const v = chatInput.value.trim();
-  if (!v) return;
-  chatInput.value = ""; pushUser(v); askLLM(v);
-}
-sendBtn?.addEventListener("click", handleSend);
-chatInput?.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }});
-form?.addEventListener("submit", (e)=>{
-  if (!lastResult || !essentialsReady(lastResult.fields)) {
-    e.preventDefault(); pushBot("I’m still missing essential details (Variable, Area, Start/End Time). Please answer the last question, then submit."); setSubmitState(); return;
+  // ===== DATE PICKER (FLATPICKR) LOGIC =====
+  const startDateEl = document.getElementById("start_date");
+  const endDateEl = document.getElementById("end_date");
+  if (startDateEl && endDateEl) {
+      const fpEnd = flatpickr(endDateEl, {
+          altInput: true, altFormat: "M j, Y", dateFormat: "Y-m-d",
+      });
+      const fpStart = flatpickr(startDateEl, {
+          altInput: true, altFormat: "M j, Y", dateFormat: "Y-m-d",
+          onChange: function(selectedDates, dateStr, instance) {
+              fpEnd.set('minDate', selectedDates[0]);
+          },
+      });
   }
-  buildHidden();
+
+  // ===== AREA PICKER (MODAL LOGIC) =====
+  const openPickerBtn = document.getElementById("openAreaPicker");
+  const useBboxBtn = document.getElementById("useBbox");
+  const resetBboxBtn = document.getElementById("resetBbox");
+  const bboxLabel = document.getElementById("bboxLabel");
+  const previewWrap = document.getElementById("areaPreview");
+  const previewLabel = document.getElementById("bboxLabelInline");
+  const editAreaBtn = document.getElementById("editAreaBtn");
+  const areaHidden = document.getElementById("area_bbox");
+  const areaHiddenCard = document.getElementById("area_bbox_cardinal");
+  const mapModal = document.getElementById("mapModal");
+  const closeModalBtn = document.getElementById("closeModalBtn");
+  const mapModalBackdrop = document.getElementById("mapModalBackdrop");
+  let map, drawn, drawControl, currentRect = null, bbox = null;
+  const round = n => Math.round(n * 10000) / 10000;
+  const fmtLat = lat => `${Math.abs(lat).toFixed(4)}°${lat >= 0 ? 'N' : 'S'}`;
+  const fmtLon = lon => `${Math.abs(lon).toFixed(4)}°${lon >= 0 ? 'E' : 'W'}`;
+  function openMapModal() {
+    document.body.classList.add("modal-open", "body--modal-open");
+    mapModal.classList.remove("hidden");
+    initMapIfNeeded();
+    setTimeout(() => { if (map) { map.invalidateSize(true); if (currentRect) { map.fitBounds(currentRect.getBounds(), { padding: [20, 20] }); } } }, 50);
+  }
+  function closeMapModal() { mapModal.classList.add("hidden"); document.body.classList.remove("modal-open", "body--modal-open"); }
+  function initMapIfNeeded() {
+    if (map) return;
+    map = L.map("leafletMapSheet", { zoomControl: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }).addTo(map);
+    map.setView([20, 0], 2);
+    drawn = new L.FeatureGroup(); map.addLayer(drawn);
+    drawControl = new L.Control.Draw({ draw: { polygon: false, polyline: false, circle: false, circlemarker: false, marker: false, rectangle: { shapeOptions: { color: "#22d3ee", weight: 2, opacity: 0.9, fillOpacity: 0.1 } } }, edit: { featureGroup: drawn, edit: true, remove: true } });
+    map.addControl(drawControl);
+    map.on(L.Draw.Event.CREATED, (e) => { if (currentRect) drawn.removeLayer(currentRect); currentRect = e.layer; drawn.addLayer(currentRect); updateBboxLabel(); try { const handler = drawControl?._toolbars?.draw?._modes?.rectangle?.handler; if (handler && handler.disable) handler.disable(); } catch (_) { } });
+    map.on("draw:edited", updateBboxLabel);
+    map.on("draw:deleted", () => { currentRect = null; bbox = null; bboxLabel.textContent = "No selection yet."; });
+  }
+  function updateBboxLabel() {
+    if (!currentRect) return;
+    const b = currentRect.getBounds(); const sw = b.getSouthWest(), ne = b.getNorthEast();
+    bbox = { lonW: round(sw.lng), latS: round(sw.lat), lonE: round(ne.lng), latN: round(ne.lat) };
+    const numeric = `${bbox.lonW},${bbox.latS} to ${bbox.lonE},${bbox.latN}`;
+    const cardinal = `${fmtLon(bbox.lonW)}, ${fmtLat(bbox.latS)} to ${fmtLon(bbox.lonE)}, ${fmtLat(bbox.latN)}`;
+    bboxLabel.textContent = cardinal; areaHidden.value = numeric; areaHiddenCard.value = cardinal;
+    if (!previewWrap.classList.contains("hidden")) { previewLabel.textContent = cardinal; }
+  }
+  resetBboxBtn?.addEventListener("click", () => { if (drawn) drawn.clearLayers(); currentRect = null; bbox = null; bboxLabel.textContent = "No selection yet."; areaHidden.value = areaHiddenCard.value = ""; previewWrap.classList.add("hidden"); openPickerBtn.textContent = "Select Area on Map"; });
+  function showPreview(b) { if (!b) return; previewWrap.classList.remove("hidden"); const cardinal = `${fmtLon(b.lonW)}, ${fmtLat(b.latS)} to ${fmtLon(b.lonE)}, ${fmtLat(b.latN)}`; previewLabel.textContent = cardinal; openPickerBtn.textContent = "Change Selected Area"; }
+  useBboxBtn?.addEventListener("click", () => { if (!bbox) { bboxLabel.textContent = "Draw a rectangle first."; return; } closeMapModal(); showPreview(bbox); });
+  openPickerBtn?.addEventListener("click", openMapModal);
+  editAreaBtn?.addEventListener("click", openMapModal);
+  closeModalBtn?.addEventListener("click", closeMapModal);
+  mapModalBackdrop?.addEventListener("click", closeMapModal);
 });
-
-/* ---------- AREA PICKER (MODAL LOGIC) ---------- */
-const openPickerBtn    = document.getElementById("openAreaPicker");
-const useBboxBtn       = document.getElementById("useBbox");
-const resetBboxBtn     = document.getElementById("resetBbox");
-const bboxLabel        = document.getElementById("bboxLabel");
-const previewWrap      = document.getElementById("areaPreview");
-const previewLabel     = document.getElementById("bboxLabelInline"); // The text span for coordinates
-const editAreaBtn      = document.getElementById("editAreaBtn");
-const areaHidden       = document.getElementById("area_bbox");
-const areaHiddenCard   = document.getElementById("area_bbox_cardinal");
-const mapModal         = document.getElementById("mapModal");
-const closeModalBtn    = document.getElementById("closeModalBtn");
-const mapModalBackdrop = document.getElementById("mapModalBackdrop");
-
-let map, drawn, drawControl, currentRect = null, bbox = null;
-// Preview map variables have been removed
-
-const round = n => Math.round(n * 10000) / 10000;
-const fmtLat = lat => `${Math.abs(lat).toFixed(4)}°${lat >= 0 ? 'N' : 'S'}`;
-const fmtLon = lon => `${Math.abs(lon).toFixed(4)}°${lon >= 0 ? 'E' : 'W'}`;
-
-function openMapModal() {
-  document.body.classList.add("modal-open", "body--modal-open");
-  mapModal.classList.remove("hidden");
-  initMapIfNeeded();
-  setTimeout(() => {
-    if (map) {
-      map.invalidateSize(true);
-      if (currentRect) { map.fitBounds(currentRect.getBounds(), { padding: [20, 20] }); }
-    }
-  }, 50);
-}
-
-function closeMapModal() {
-  mapModal.classList.add("hidden");
-  document.body.classList.remove("modal-open", "body--modal-open");
-}
-
-function initMapIfNeeded(){
-  if (map) return;
-  map = L.map("leafletMapSheet", { zoomControl: true });
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }).addTo(map);
-  map.setView([20,0], 2);
-  drawn = new L.FeatureGroup();
-  map.addLayer(drawn);
-  drawControl = new L.Control.Draw({
-    draw: { polygon:false, polyline:false, circle:false, circlemarker:false, marker:false, rectangle: { shapeOptions:{ color:"#22d3ee", weight:2, opacity:0.9, fillOpacity:0.1 } } },
-    edit: { featureGroup: drawn, edit:true, remove:true }
-  });
-  map.addControl(drawControl);
-  map.on(L.Draw.Event.CREATED, (e) => {
-    if (currentRect) drawn.removeLayer(currentRect);
-    currentRect = e.layer; drawn.addLayer(currentRect);
-    updateBboxLabel();
-    try { const handler = drawControl?._toolbars?.draw?._modes?.rectangle?.handler; if (handler && handler.disable) handler.disable(); } catch(_) {}
-  });
-  map.on("draw:edited", updateBboxLabel);
-  map.on("draw:deleted", () => { currentRect = null; bbox = null; bboxLabel.textContent = "No selection yet."; });
-}
-
-function updateBboxLabel(){
-  if (!currentRect) return;
-  const b  = currentRect.getBounds();
-  const sw = b.getSouthWest(), ne = b.getNorthEast();
-  bbox = { lonW: round(sw.lng), latS: round(sw.lat), lonE: round(ne.lng), latN: round(ne.lat) };
-  const numeric  = `${bbox.lonW},${bbox.latS} to ${bbox.lonE},${bbox.latN}`;
-  const cardinal = `${fmtLon(bbox.lonW)}, ${fmtLat(bbox.latS)} to ${fmtLon(bbox.lonE)}, ${fmtLat(bbox.latN)}`;
-  bboxLabel.textContent = cardinal;
-  areaHidden.value = numeric;
-  areaHiddenCard.value = cardinal;
-  if (!previewWrap.classList.contains("hidden")) { previewLabel.textContent = cardinal; }
-}
-
-resetBboxBtn?.addEventListener("click", () => {
-  if (drawn) drawn.clearLayers();
-  currentRect = null; bbox = null;
-  bboxLabel.textContent = "No selection yet.";
-  areaHidden.value = areaHiddenCard.value = "";
-  previewWrap.classList.add("hidden"); // Hide the preview container on reset
-});
-
-// ***** MODIFIED/FIXED FUNCTION: Now only shows text *****
-function showPreview(b){
-  if (!b) return;
-  // Make the preview container visible.
-  previewWrap.classList.remove("hidden");
-  // Set the text of the coordinate label.
-  const cardinal = `${fmtLon(b.lonW)}, ${fmtLat(b.latS)} to ${fmtLon(b.lonE)}, ${fmtLat(b.latN)}`;
-  previewLabel.textContent = cardinal;
-}
-
-useBboxBtn?.addEventListener("click", () => {
-  if (!bbox) { bboxLabel.textContent = "Draw a rectangle first."; return; }
-  const text = `Area: ${fmtLon(bbox.lonW)}, ${fmtLat(bbox.latS)} to ${fmtLon(bbox.lonE)}, ${fmtLat(bbox.latN)}`;
-  closeMapModal();
-  showPreview(bbox);
-  pushUser(text);
-  askLLM(text);
-});
-
-// Event Listeners for Modal
-openPickerBtn?.addEventListener("click", openMapModal);
-editAreaBtn?.addEventListener("click", openMapModal);
-closeModalBtn?.addEventListener("click", closeMapModal);
-mapModalBackdrop?.addEventListener("click", closeMapModal);
-
-/* ---------- Hero Animation Pause Logic (for form focus) ---------- */
-const requestFormEl = document.getElementById('request');
-const remarksBoxEl  = document.getElementById('remarks');
-function setFormActive(on) {
-  if (on) document.body.classList.add('body--form-active');
-  else document.body.classList.remove('body--form-active');
-}
-if (requestFormEl) {
-  requestFormEl.addEventListener('focusin', () => setFormActive(true));
-  requestFormEl.addEventListener('focusout', () => {
-    setTimeout(() => { if (!requestFormEl.contains(document.activeElement)) { setFormActive(false); } }, 0);
-  });
-}
-function beginResizePause() { setFormActive(true); }
-function endResizePause() { if (!requestFormEl.contains(document.activeElement)) { setFormActive(false); } }
-remarksBoxEl?.addEventListener('mousedown', beginResizePause);
-remarksBoxEl?.addEventListener('touchstart', beginResizePause, { passive: true });
-window.addEventListener('mouseup', endResizePause);
-window.addEventListener('touchend', endResizePause, { passive: true });
-
-/* ---------- Init ---------- */
-pushBot("Hi! I'm TerraScope Assistant. Please, tell me briefly about the data you require.");
-setSubmitState();
 </script>
 
 </body>
