@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TerraScope — Satellite Data On Demand</title>
+  <title>OceanSat Labs — Data Delivery</title>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -162,18 +162,19 @@
 </head>
 <body class="bg-black text-white">
 
-  <!-- NAVBAR (non-fixed) -->
-  <header class="relative w-full bg-transparent">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-      <a href="#hero" class="flex items-center gap-3">
-        <img src="./earthlabs.png" alt="TerraScope logo" class="h-8 md:h-9 w-auto object-contain" />
-      </a>
-      <nav class="space-x-8 text-sm">
-        <a href="#about" class="hover:text-cyan-400 transition">How it works</a>
-      </nav>
-    </div>
-    <div class="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/50 to-transparent"></div>
-  </header>
+ <!-- NAVBAR (non-fixed) -->
+<header class="relative w-full bg-transparent">
+  <div class="relative z-10 max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="#hero" class="flex items-center gap-3">
+      <img src="./earthlabs.png" alt="ODL logo" class="h-[48px] sm:h-[56px] md:h-[70px] w-auto object-contain" />
+    </a>
+    <nav class="space-x-8 text-sm">
+      <a href="#about" class="hover:text-cyan-400 transition">How it works</a>
+    </nav>
+  </div>
+
+  <div class="absolute inset-0 z-0 pointer-events-none bg-gradient-to-b from-black/50 to-transparent"></div>
+</header>
 
   <!-- HERO -->
   <section class="hero" id="hero">
@@ -431,7 +432,7 @@
 
   <!-- FOOTER -->
   <footer class="bg-white/5 py-6 text-center text-gray-500 text-sm">
-    © 2025 TerraScope. All rights reserved.
+    © 2025 OceanSat Labs. All rights reserved.
   </footer>
 
 <!-- MAP MODAL -->
