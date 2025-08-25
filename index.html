@@ -169,7 +169,6 @@
       </a>
       <nav class="space-x-8 text-sm">
         <a href="#about" class="hover:text-cyan-400 transition">About</a>
-        <a href="#request" class="hover:text-cyan-400 transition">Request Data</a>
       </nav>
     </div>
     <div class="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/50 to-transparent"></div>
@@ -223,19 +222,17 @@
           <!-- Date and Area Section -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Date Pickers -->
-              <div>
-                    <label class="block text-white-300 mb-1 text-sm">Time Range</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <!-- Wrapped Start Date -->
-                        <div>
-                            <input id="start_date" name="start_date" type="text" placeholder="Start Date" required
-                                    class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
-                        </div>
-                        <!-- Wrapped End Date -->
-                        <div>
-                            <input id="end_date" name="end_date" type="text" placeholder="End Date" required
-                                    class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
-                        </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:col-span-2">
+                    <label class="block text-white-300 mb-1 text-sm col-span-1 sm:col-span-2">Time Range</label>
+                    <!-- Wrapped Start Date -->
+                    <div class="col-span-1">
+                        <input id="start_date" name="start_date" type="text" placeholder="Start Date" required
+                                class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+                    </div>
+                    <!-- Wrapped End Date -->
+                    <div class="col-span-1">
+                        <input id="end_date" name="end_date" type="text" placeholder="End Date" required
+                                class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
                     </div>
                 </div>
 
@@ -433,6 +430,15 @@
       </div>
     </div>
   </section>
+  
+  <!-- TERMS AND CONDITIONS -->
+  <section class="py-6 bg-black text-center">
+    <div class="max-w-5xl mx-auto px-6">
+        <button id="openTermsBtn" class="text-cyan-400 hover:text-cyan-300 underline transition">
+            Terms and Conditions
+        </button>
+    </div>
+  </section>
 
   <!-- FOOTER -->
   <footer class="bg-white/5 py-6 text-center text-gray-500 text-sm">
@@ -462,6 +468,30 @@
     </div>
   </div>
 </div>
+
+<!-- TERMS MODAL -->
+<div id="termsModal" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
+    <div id="termsModalBackdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="relative flex flex-col w-[90vw] h-auto max-w-4xl max-h-[85vh]
+                rounded-2xl border border-white/20 bg-black/50 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
+            <h4 class="text-base font-semibold">Terms and Conditions</h4>
+            <button id="closeTermsBtn" type="button" class="px-3 py-1 text-sm bg-white/10 hover:bg-white/20 rounded">Close</button>
+        </div>
+        <div class="flex-grow p-6 text-gray-300 text-sm overflow-y-auto">
+            <p><strong>[Placeholder for Terms and Conditions]</strong></p>
+            <br>
+            <p>Please replace this placeholder text with your actual Terms and Conditions. You can add more paragraphs, lists, and other elements as needed.</p>
+            <p class="mt-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        </div>
+        <div class="flex items-center justify-end px-4 py-3 border-t border-white/10 flex-shrink-0">
+            <button id="acceptTermsBtn" type="button" class="px-4 py-2 text-sm rounded-lg font-semibold bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
 
 <!-- SCRIPTS BEGIN HERE! -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -769,6 +799,33 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // ===== TERMS & CONDITIONS MODAL =====
+    const termsModal = document.getElementById('termsModal');
+    const openTermsBtn = document.getElementById('openTermsBtn');
+    const closeTermsBtn = document.getElementById('closeTermsBtn');
+    const acceptTermsBtn = document.getElementById('acceptTermsBtn');
+    const termsModalBackdrop = document.getElementById('termsModalBackdrop');
+
+    function openTermsModal() {
+        if (termsModal) {
+            termsModal.classList.remove('hidden');
+            document.body.classList.add('modal-open', 'body--modal-open');
+        }
+    }
+
+    function closeTermsModal() {
+        if (termsModal) {
+            termsModal.classList.add('hidden');
+            document.body.classList.remove('modal-open', 'body--modal-open');
+        }
+    }
+
+    openTermsBtn?.addEventListener('click', openTermsModal);
+    closeTermsBtn?.addEventListener('click', closeTermsModal);
+    acceptTermsBtn?.addEventListener('click', closeTermsModal);
+    termsModalBackdrop?.addEventListener('click', closeTermsModal);
+
 });
 </script>
 
