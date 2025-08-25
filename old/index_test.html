@@ -195,161 +195,86 @@
       </p>
 
       <!-- FUSED REQUEST FORM -->
-      <div class="mt-8 mx-auto max-w-6xl">
-        <form id="request" action="https://formspree.io/f/xzzvqjyq" method="POST"
-              class="glass-card reflection p-4 md:p-5 space-y-4 text-left min-h-[18rem]">
+       <main class="max-w-6xl mx-auto px-6 pb-16">
+    <!-- TWO CARDS -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          <!-- Honeypot -->
-          <input type="text" name="_gotcha" class="hidden" tabindex="-1" autocomplete="off"/>
+      <!-- LEFT: FORM CARD -->
+      <div class="rounded-[28px] bg-white/5 border border-white/20 p-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input id="name"  placeholder="Name"
+                 class="min-w-0 w-full rounded-xl px-3 py-2 bg-black/30 border border-white/20" />
+          <input id="email" placeholder="Email"
+                 class="min-w-0 w-full rounded-xl px-3 py-2 bg-black/30 border border-white/20" />
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label for="name" class="block text-white-300 mb-1 text-sm">Your Name</label>
-              <input id="name" name="name" required class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
-            </div>
-            <div>
-              <label for="email" class="block text-white-300 mb-1 text-sm">Email Address</label>
-              <input id="email" type="email" name="_replyto" required class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
-            </div>
+          <textarea id="description" placeholder="Describe the data you need"
+            class="sm:col-span-2 min-h-[140px] rounded-xl px-3 py-2 bg-black/30 border border-white/20"></textarea>
+
+          <input id="start_date" placeholder="Start Date"
+                 class="min-w-0 w-full rounded-xl px-3 py-2 bg-black/30 border border-white/20" />
+          <input id="end_date"   placeholder="End Date"
+                 class="min-w-0 w-full rounded-xl px-3 py-2 bg-black/30 border border-white/20" />
+        </div>
+
+        <!-- Urgency + Submit/Clear -->
+        <div class="mt-3 flex items-center gap-3">
+          <input id="urgency" placeholder="Urgency"
+                 class="min-w-0 w-full sm:w-auto flex-1 rounded-xl px-3 py-2 bg-black/30 border border-white/20" />
+          <div class="ml-auto flex items-center gap-3">
+            <button id="submitBtn" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20">Submit</button>
+            <button id="clearBtn"  class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20">Clear</button>
           </div>
+        </div>
 
-          <div>
-            <label for="message" class="block text-white-300 mb-1 text-sm">Describe the Data You Need</label>
-            <textarea id="message" name="message" rows="2" required
-                      class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                      placeholder="Please be as specific as possible. Include the variable, desired format (e.g., CSV, GeoTIFF), and any other constraints."></textarea>
-          </div>
+        <!-- Hidden fields + preview line -->
+        <input id="area_bbox" type="hidden">
+        <input id="area_bbox_cardinal" type="hidden">
+        <p id="areaPreview" class="mt-3 text-sm text-white/80 hidden">
+          <span class="text-white/60">Selected area:</span> <span id="previewLabel"></span>
+        </p>
+      </div>
 
-          <!-- Date and Area Section -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Date Pickers -->
-              <div>
-                  <label class="block text-white-300 mb-1 text-sm">Time Range</label>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input id="start_date" name="start_date" type="text" placeholder="Start Date" required
-                            class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
-                      <input id="end_date" name="end_date" type="text" placeholder="End Date" required
-                            class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
-                  </div>
-              </div>
-              <!-- Area Picker -->
-              <div class="self-end">
-                  <label class="block text-white-300 mb-1 text-sm">Area of Interest</label>
-                  <div id="areaPreview" class="hidden -mt-1 mb-2 rounded-xl border border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
-                      <div class="flex items-center justify-between px-3 py-2">
-                          <span class="text-xs text-white-300">Selected Area</span>
-                          <button id="editAreaBtn" type="button" class="text-xs text-cyan-300 hover:text-cyan-200 underline">Edit on map</button>
-                      </div>
-                      <div class="px-3 py-2 text-xs text-gray-300 border-t border-white/10">
-                          <span id="bboxLabelInline">—</span>
-                      </div>
-                  </div>
-                  <button id="openAreaPicker" type="button" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
-                      Select Area on Map
-                  </button>
-              </div>
-              <div class="mt-2 col-span-full">
-                <button id="openCoordsForm" type="button"
-                        class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
-                  Add Coordinates Manually
-                </button>
+      <!-- RIGHT: MAP CARD -->
+      <div class="rounded-[28px] bg-white/5 border border-white/20 p-5">
+        <!-- NORTH on top -->
+        <div class="flex justify-center mb-3">
+          <input id="coordLatN" type="number" step="0.0001" min="-90" max="90"
+            placeholder="North"
+            class="w-[180px] rounded-xl px-3 py-2 bg-black/30 border border-white/20 text-center" />
+        </div>
 
-                <div id="coordsForm" class="hidden mt-2 rounded-xl border border-white/20 bg-white/5 p-3">
-                  <div class="grid grid-cols-2 sm:grid-cols-2 gap-3 items-start">
-                    <!-- LEFT: fields -->
-                    <div class="space-y-2">
-                      <div class="grid grid-cols-2 gap-2">
-                        <div>
-                          <label class="text-xs">West Lon (°)</label>
-                          <input id="coordLonW" type="number" step="0.0001" min="-180" max="180"
-                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
-                        </div>
-                        <div>
-                          <label class="text-xs">East Lon (°)</label>
-                          <input id="coordLonE" type="number" step="0.0001" min="-180" max="180"
-                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
-                        </div>
-                        <div>
-                          <label class="text-xs">South Lat (°)</label>
-                          <input id="coordLatS" type="number" step="0.0001" min="-90" max="90"
-                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
-                        </div>
-                        <div>
-                          <label class="text-xs">North Lat (°)</label>
-                          <input id="coordLatN" type="number" step="0.0001" min="-90" max="90"
-                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
-                        </div>
-                      </div>
+        <!-- Square map -->
+        <div class="relative">
+          <div id="coordsMap"
+               class="w-full aspect-square rounded-[24px] border border-white/15 overflow-hidden"></div>
+        </div>
 
-                      <p id="coordsError" class="text-xs text-red-300 hidden"></p>
+        <!-- WEST / SOUTH / EAST -->
+        <div class="mt-3 grid grid-cols-3 gap-3">
+          <input id="coordLonW" type="number" step="0.0001" min="-180" max="180"
+            placeholder="West"
+            class="w-full rounded-xl px-3 py-2 bg-black/30 border border-white/20 text-center" />
+          <input id="coordLatS" type="number" step="0.0001" min="-90" max="90"
+            placeholder="South"
+            class="w-full rounded-xl px-3 py-2 bg-black/30 border border-white/20 text-center" />
+          <input id="coordLonE" type="number" step="0.0001" min="-180" max="180"
+            placeholder="East"
+            class="w-full rounded-xl px-3 py-2 bg-black/30 border border-white/20 text-center" />
+        </div>
 
-                      <div class="flex gap-2">
-                        <button id="useCoordsBtn" type="button"
-                                class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
-                          Use these coordinates
-                        </button>
-                        <button id="cancelCoordsBtn" type="button"
-                                class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
+        <!-- Actions -->
+        <div class="mt-3 flex justify-end gap-3">
+          <button id="useCoordsBtn" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20">
+            Use these coordinates
+          </button>
+          <button id="openAreaPicker" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20">
+            Select Area on Map
+          </button>
+        </div>
+      </div>
 
-                    <!-- RIGHT: live map -->
-                    <div>
-                      <div id="coordsMap" class="rounded-xl border border-white/10" style="height:260px;"></div>
-                      <p class="mt-1 text-xs text-white/50">Live preview</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-          </div>
-          
-          <input type="hidden" id="area_bbox_cardinal" name="area_bbox_cardinal" />
-          <input type="hidden" id="area_bbox" name="area_bbox" />
-
-          <!-- Controls: urgency + actions -->
-          <div class="mt-4 grid grid-cols-1 sm:grid-cols-[auto,1fr] items-center gap-4">
-            <div class="justify-self-center sm:justify-self-start">
-              <div id="urgencySelect" class="urg urg-standard relative inline-block flex-shrink-0">
-                <input type="hidden" name="urgency" id="urgVal" value="Standard (2–3 days)"/>
-                <button type="button" class="urg-btn inline-flex items-center gap-2 rounded-xl px-4 py-2 font-medium cursor-pointer shadow hover:opacity-95 transition">
-                  <span class="urg-label">Standard (2–3 days)</span>
-                  <svg class="urg-caret w-4 h-4 transition-transform" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
-                </button>
-                <ul id="urgMenu" class="urg-menu absolute left-0 mt-2 w-56 rounded-xl p-1 shadow-xl hidden">
-                  <li class="urg-opt asap rounded-lg px-3 py-2 text-sm cursor-pointer" data-value="ASAP">ASAP</li>
-                  <li class="urg-opt standard rounded-lg px-3 py-2 text-sm cursor-pointer" data-value="Standard (2–3 days)">Standard (2–3 days)</li>
-                  <li class="urg-opt norush rounded-lg px-3 py-2 text-sm cursor-pointer" data-value="No rush">No rush</li>
-                </ul>
-              </div>
-              <!-- ***** NEW: Urgency helper ***** -->
-              <div class="mt-2 text-xs text-gray-300">
-                <button id="urgHelpToggle" type="button" class="underline text-cyan-300 hover:text-cyan-200">
-                  How to choose urgency
-                </button>
-                <div id="urgHelp" class="urg-help mt-2 rounded-lg border border-white/10 bg-white/5 p-3">
-                  <ul class="list-disc list-inside space-y-1">
-                    <li><span class="font-semibold">ASAP</span>: time-critical or event-driven requests. We’ll prioritize this first.</li>
-                    <li><span class="font-semibold">Standard (2–3 days)</span>: default path; typical turnaround for most requests.</li>
-                    <li><span class="font-semibold">No rush</span>: flexible delivery window; we’ll batch with other jobs.</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            
-            <div class="sm:col-span-1 flex justify-center sm:justify-end gap-3 flex-nowrap">
-              <input type="hidden" name="_subject" id="subject" value="TerraScope request"/>
-              <button id="submitBtn" type="submit" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-semibold bg-gradient-to-r from-cyan-400 to-blue-500 hover:opacity-90 transition">
-                Submit Request
-              </button>
-              <button type="button" id="clearBtn" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
-                Clear
-              </button>
-            </div>
-          </div>
-        </form>
+    </div>
+  </main>
 
         <!-- PROCESSING CARD -->
         <div id="processingCard" class="hidden glass-card reflection p-8 mt-6 text-center min-h-[18rem]">
@@ -735,22 +660,10 @@ useCoordsBtn?.addEventListener("click", () => {
     const W = parseFloat(coordLonW.value), E = parseFloat(coordLonE.value),
           S = parseFloat(coordLatS.value), N = parseFloat(coordLatN.value);
     if ([W,E,S,N].every(Number.isFinite)) {
-      const b = {
-        lonW: round(Math.min(W,E)), lonE: round(Math.max(W,E)),
-        latS: round(Math.min(S,N)), latN: round(Math.max(S,N))
-      };
-      // persist to app state + UI
-      const numeric  = `${b.lonW},${b.latS} to ${b.lonE},${b.latN}`;
-      const cardinal = `${fmtLon(b.lonW)}, ${fmtLat(b.latS)} to ${fmtLon(b.lonE)}, ${fmtLat(b.latN)}`;
-      areaHidden.value = numeric;
-      areaHiddenCard.value = cardinal;
-      previewWrap.classList.remove("hidden");
-      previewLabel.textContent = cardinal;
-      openPickerBtn.textContent = "Change Selected Area";
-      bbox = b;                      // save as the coords to use
-      prefillCoords(b);              // normalize inputs
-      drawOnCoordsMap(b, true);      // fit the mini-map
-      coordsForm?.classList.add("hidden"); // close panel
+      const b = { lonW: round(Math.min(W,E)), lonE: round(Math.max(W,E)),
+                  latS: round(Math.min(S,N)), latN: round(Math.max(S,N)) };
+      prefillCoords(b);
+      drawOnCoordsMap(b, true);
     }
   }
 });
