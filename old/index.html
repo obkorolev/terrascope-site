@@ -232,30 +232,31 @@
                             class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
                   </div>
               </div>
-              <!-- Area Picker -->
-              <div class="self-end">
-                  <label class="block text-white-300 mb-1 text-sm">Area of Interest</label>
-                  <div id="areaPreview" class="hidden -mt-1 mb-2 rounded-xl border border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
-                      <div class="flex items-center justify-between px-3 py-2">
-                          <span class="text-xs text-white-300">Selected Area</span>
-                          <button id="editAreaBtn" type="button" class="text-xs text-cyan-300 hover:text-cyan-200 underline">Edit on map</button>
-                      </div>
-                      <div class="px-3 py-2 text-xs text-gray-300 border-t border-white/10">
-                          <span id="bboxLabelInline">—</span>
-                      </div>
-                  </div>
-                  <button id="openAreaPicker" type="button" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
-                      Select Area on Map
-                  </button>
-              </div>
-              <div class="mt-2 col-span-full">
-                <button id="openCoordsForm" type="button"
-                        class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
-                  Add Coordinates Manually
-                </button>
 
-                <div id="coordsForm" class="hidden mt-2 rounded-xl border border-white/20 bg-white/5 p-3">
-                  <div class="grid grid-cols-2 sm:grid-cols-2 gap-3 items-start">
+              <!-- Area Picker -->
+              <div class="md:col-span-2">
+                <label class="block text-white-300 mb-1 text-sm">Area of Interest</label>
+                <div id="areaPreview" class="hidden mt-1 mb-2 rounded-xl border border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
+                    <div class="flex items-center justify-between px-3 py-2">
+                        <span class="text-xs text-white-300">Selected Area</span>
+                        <button id="editAreaBtn" type="button" class="text-xs text-cyan-300 hover:text-cyan-200 underline">Edit on map</button>
+                    </div>
+                    <div class="px-3 py-2 text-xs text-gray-300 border-t border-white/10">
+                        <span id="bboxLabelInline">—</span>
+                    </div>
+                </div>
+                 <!-- Button Group -->
+                <div class="flex items-center gap-3 flex-wrap">
+                    <button id="openAreaPicker" type="button" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
+                        Draw Area on Map
+                    </button>
+                    <button id="openCoordsForm" type="button" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
+                      Add Coordinates Manually
+                    </button>
+                </div>
+
+                <div id="coordsForm" class="hidden mt-4 rounded-xl border border-white/20 bg-white/5 p-3">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
                     <!-- LEFT: fields -->
                     <div class="space-y-2">
                       <div class="grid grid-cols-2 gap-2">
@@ -283,10 +284,13 @@
 
                       <p id="coordsError" class="text-xs text-red-300 hidden"></p>
 
-                      <div class="flex gap-2">
+                      <div class="flex gap-2 flex-wrap">
                         <button id="useCoordsBtn" type="button"
                                 class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
                           Use these coordinates
+                        </button>
+                         <button id="clearCoordsBtn" type="button" class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
+                          Clear
                         </button>
                         <button id="cancelCoordsBtn" type="button"
                                 class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
@@ -297,13 +301,12 @@
 
                     <!-- RIGHT: live map -->
                     <div>
-                      <div id="coordsMap" class="rounded-xl border border-white/10" style="height:260px;"></div>
+                      <div id="coordsMap" class="rounded-xl border border-white/10" style="height:240px;"></div>
                       <p class="mt-1 text-xs text-white/50">Live preview</p>
                     </div>
                   </div>
                 </div>
               </div>
-
           </div>
           
           <input type="hidden" id="area_bbox_cardinal" name="area_bbox_cardinal" />
@@ -351,9 +354,15 @@
           </div>
         </form>
 
-        <!-- PROCESSING CARD -->
-        <div id="processingCard" class="hidden glass-card reflection p-8 mt-6 text-center min-h-[18rem]">
-            <!-- content unchanged -->
+        <!-- SUBMITTED / SUCCESS CARD -->
+        <div id="processingCard" class="hidden glass-card reflection p-8 mt-6 flex flex-col items-center justify-center text-center min-h-[18rem]">
+            <svg class="w-16 h-16 text-green-400 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="text-3xl font-semibold text-white">Request Submitted!</h3>
+            <p class="mt-4 text-gray-300 max-w-md">
+              Thank you for your request. We've received it and will begin processing shortly. A confirmation and a quote will be sent to your email.
+            </p>
         </div>
       </div>
     </div>
@@ -493,7 +502,7 @@ window.addEventListener('DOMContentLoaded', () => {
     urgMenu.querySelectorAll('.urg-opt, .urg-item').forEach(li => { li.addEventListener('click', () => { setUrgency(li.getAttribute('data-value')); closeMenu(); }); });
     setUrgency(urgHidden?.value || 'Standard (2–3 days)');
   }
-  if (clearBtn) { clearBtn.addEventListener('click', () => { form.reset(); setUrgency('Standard (2–3 days)'); statusEl.textContent = ''; statusEl.classList.add('hidden'); }); }
+  
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     statusEl.classList.add('hidden');
@@ -522,7 +531,6 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // ===== DATE PICKER (FLATPICKR) LOGIC =====
-// ===== DATE PICKER (FLATPICKR) LOGIC =====
   const startDateEl = document.getElementById("start_date");
   const endDateEl   = document.getElementById("end_date");
   if (startDateEl && endDateEl) {
@@ -545,8 +553,8 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-
-  // ===== AREA PICKER (MODAL LOGIC) =====
+  // ===== AREA PICKER (MODAL & STATE LOGIC) =====
+  // --- Elements
   const openPickerBtn = document.getElementById("openAreaPicker");
   const useBboxBtn = document.getElementById("useBbox");
   const resetBboxBtn = document.getElementById("resetBbox");
@@ -559,17 +567,18 @@ window.addEventListener('DOMContentLoaded', () => {
   const mapModal = document.getElementById("mapModal");
   const closeModalBtn = document.getElementById("closeModalBtn");
   const mapModalBackdrop = document.getElementById("mapModalBackdrop");
+  
+  // --- State Variables
   let map, drawn, drawControl, currentRect = null, bbox = null;
+
+  // --- Utility Functions
   const round = n => Math.round(n * 10000) / 10000;
   const fmtLat = lat => `${Math.abs(lat).toFixed(4)}°${lat >= 0 ? 'N' : 'S'}`;
   const fmtLon = lon => `${Math.abs(lon).toFixed(4)}°${lon >= 0 ? 'E' : 'W'}`;
-  function openMapModal() {
-    document.body.classList.add("modal-open", "body--modal-open");
-    mapModal.classList.remove("hidden");
-    initMapIfNeeded();
-    setTimeout(() => { if (map) { map.invalidateSize(true); if (currentRect) { map.fitBounds(currentRect.getBounds(), { padding: [20, 20] }); } } }, 50);
-  }
+
+  // --- Core Map Functions
   function closeMapModal() { mapModal.classList.add("hidden"); document.body.classList.remove("modal-open", "body--modal-open"); }
+  
   function initMapIfNeeded() {
     if (map) return;
     map = L.map("leafletMapSheet", { zoomControl: true });
@@ -578,186 +587,183 @@ window.addEventListener('DOMContentLoaded', () => {
     drawn = new L.FeatureGroup(); map.addLayer(drawn);
     drawControl = new L.Control.Draw({ draw: { polygon: false, polyline: false, circle: false, circlemarker: false, marker: false, rectangle: { shapeOptions: { color: "#22d3ee", weight: 2, opacity: 0.9, fillOpacity: 0.1 } } }, edit: { featureGroup: drawn, edit: true, remove: true } });
     map.addControl(drawControl);
-    map.on(L.Draw.Event.CREATED, (e) => { if (currentRect) drawn.removeLayer(currentRect); currentRect = e.layer; drawn.addLayer(currentRect); updateBboxLabel(); try { const handler = drawControl?._toolbars?.draw?._modes?.rectangle?.handler; if (handler && handler.disable) handler.disable(); } catch (_) { } });
-    map.on("draw:edited", updateBboxLabel);
+    map.on(L.Draw.Event.CREATED, (e) => { if (currentRect) drawn.removeLayer(currentRect); currentRect = e.layer; drawn.addLayer(currentRect); updateBboxFromLeaflet(); try { const handler = drawControl?._toolbars?.draw?._modes?.rectangle?.handler; if (handler && handler.disable) handler.disable(); } catch (_) { } });
+    map.on("draw:edited", updateBboxFromLeaflet);
     map.on("draw:deleted", () => { currentRect = null; bbox = null; bboxLabel.textContent = "No selection yet."; });
   }
-  function updateBboxLabel() {
+
+  function updateBboxFromLeaflet() {
     if (!currentRect) return;
     const b = currentRect.getBounds(); const sw = b.getSouthWest(), ne = b.getNorthEast();
     bbox = { lonW: round(sw.lng), latS: round(sw.lat), lonE: round(ne.lng), latN: round(ne.lat) };
-    const numeric = `${bbox.lonW},${bbox.latS} to ${bbox.lonE},${bbox.latN}`;
-    const cardinal = `${fmtLon(bbox.lonW)}, ${fmtLat(bbox.latS)} to ${fmtLon(bbox.lonE)}, ${fmtLat(bbox.latN)}`;
-    bboxLabel.textContent = cardinal; areaHidden.value = numeric; areaHiddenCard.value = cardinal;
-    if (!previewWrap.classList.contains("hidden")) { previewLabel.textContent = cardinal; }
+    updateFormUIFromBbox();
     prefillCoords?.(bbox);
-    if (coordsMap) drawOnCoordsMap(bbox);
+    if (mlMap) drawOnCoordsMap(bbox);
   }
-  resetBboxBtn?.addEventListener("click", () => { if (drawn) drawn.clearLayers(); currentRect = null; bbox = null; bboxLabel.textContent = "No selection yet."; areaHidden.value = areaHiddenCard.value = ""; previewWrap.classList.add("hidden"); openPickerBtn.textContent = "Select Area on Map"; });
-  function showPreview(b) { if (!b) return; previewWrap.classList.remove("hidden"); const cardinal = `${fmtLon(b.lonW)}, ${fmtLat(b.latS)} to ${fmtLon(b.lonE)}, ${fmtLat(b.latN)}`; previewLabel.textContent = cardinal; openPickerBtn.textContent = "Change Selected Area"; }
-  useBboxBtn?.addEventListener("click", () => { if (!bbox) { bboxLabel.textContent = "Draw a rectangle first."; return; } closeMapModal(); showPreview(bbox); });
+
+  function syncBboxToLeafletMap(b) {
+      if (!map || !drawn) return;
+      const bounds = [[b.latS, b.lonW], [b.latN, b.lonE]];
+      drawn.clearLayers();
+      currentRect = L.rectangle(bounds, { color: "#22d3ee", weight: 2, opacity: 0.9, fillOpacity: 0.1 });
+      drawn.addLayer(currentRect);
+      updateFormUIFromBbox();
+  }
+  
+  function updateFormUIFromBbox() {
+      if (!bbox) {
+          areaHidden.value = ""; areaHiddenCard.value = "";
+          previewWrap.classList.add("hidden");
+          openPickerBtn.textContent = "Draw Area on Map";
+          bboxLabel.textContent = "No selection yet.";
+          return;
+      }
+      const numeric = `${bbox.lonW},${bbox.latS} to ${bbox.lonE},${bbox.latN}`;
+      const cardinal = `${fmtLon(bbox.lonW)}, ${fmtLat(bbox.latS)} to ${fmtLon(bbox.lonE)}, ${fmtLat(bbox.latN)}`;
+      areaHidden.value = numeric; areaHiddenCard.value = cardinal;
+      bboxLabel.textContent = cardinal;
+      previewLabel.textContent = cardinal;
+      previewWrap.classList.remove("hidden");
+      openPickerBtn.textContent = "Change Selected Area";
+  }
+  
+  function openMapModal() {
+    document.body.classList.add("modal-open", "body--modal-open");
+    mapModal.classList.remove("hidden");
+    initMapIfNeeded();
+    if (bbox && !currentRect) {
+        syncBboxToLeafletMap(bbox);
+    }
+    setTimeout(() => {
+        if (map) {
+            map.invalidateSize(true);
+            if (currentRect) { map.fitBounds(currentRect.getBounds(), { padding: [50, 50] }); }
+        }
+    }, 50);
+  }
+
+  // --- Event Listeners for map modal
+  resetBboxBtn?.addEventListener("click", () => { if (drawn) drawn.clearLayers(); currentRect = null; bbox = null; updateFormUIFromBbox(); });
+  useBboxBtn?.addEventListener("click", () => { if (!bbox) { bboxLabel.textContent = "Draw a rectangle first."; return; } closeMapModal(); });
   openPickerBtn?.addEventListener("click", openMapModal);
   editAreaBtn?.addEventListener("click", openMapModal);
   closeModalBtn?.addEventListener("click", closeMapModal);
   mapModalBackdrop?.addEventListener("click", closeMapModal);
-});
 
-// ===== Manual coordinates + MapLibre inline map =====
-const openCoordsForm  = document.getElementById("openCoordsForm");
-const coordsForm      = document.getElementById("coordsForm");
-const coordLonW       = document.getElementById("coordLonW");
-const coordLonE       = document.getElementById("coordLonE");
-const coordLatS       = document.getElementById("coordLatS");
-const coordLatN       = document.getElementById("coordLatN");
-const useCoordsBtn    = document.getElementById("useCoordsBtn");
-const cancelCoordsBtn = document.getElementById("cancelCoordsBtn");
+  // ===== Manual coordinates + MapLibre inline map =====
+  const openCoordsForm  = document.getElementById("openCoordsForm");
+  const coordsForm      = document.getElementById("coordsForm");
+  const coordLonW       = document.getElementById("coordLonW");
+  const coordLonE       = document.getElementById("coordLonE");
+  const coordLatS       = document.getElementById("coordLatS");
+  const coordLatN       = document.getElementById("coordLatN");
+  const useCoordsBtn    = document.getElementById("useCoordsBtn");
+  const cancelCoordsBtn = document.getElementById("cancelCoordsBtn");
+  const clearCoordsBtn  = document.getElementById("clearCoordsBtn");
+  const coordsError     = document.getElementById("coordsError");
+  
+  let mlMap, mlBounds, mlHasLayer = false;
 
-let mlMap, mlBounds, mlHasLayer = false;
-
-// Fill inputs from bbox object
-function prefillCoords(b) {
-  if (!b) return;
-  if (coordLonW) coordLonW.value = b.lonW;
-  if (coordLonE) coordLonE.value = b.lonE;
-  if (coordLatS) coordLatS.value = b.latS;
-  if (coordLatN) coordLatN.value = b.latN;
-}
-
-function initCoordsMapIfNeeded() {
-  if (mlMap || !document.getElementById("coordsMap")) return;
-
-  mlMap = new maplibregl.Map({
-    container: "coordsMap",
-    style: "https://demotiles.maplibre.org/style.json",
-    center: [0, 20],
-    zoom: 1.5,
-    attributionControl: false,
-  });
-  mlMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
-
-  mlMap.on("load", () => {
-    // recolor land/water
-    const waterBlue = "#0ea5e9";
-    try { mlMap.setPaintProperty("background", "background-color", waterBlue); } catch {}
-    const layers = mlMap.getStyle().layers || [];
-    layers.forEach(l => {
-      if (l.type === "fill") {
-        if ((l.id || "").includes("water")) {
-          mlMap.setPaintProperty(l.id, "fill-color", waterBlue);
-        } else {
-          mlMap.setPaintProperty(l.id, "fill-color", "#ffffff");
-        }
-      }
-    });
-
-    // add bbox source + layers
-    mlMap.addSource("bbox", { type: "geojson", data: { type: "FeatureCollection", features: [] }});
-    mlMap.addLayer({ id: "bbox-fill", type: "fill", source: "bbox",
-                     paint: { "fill-color": "#22d3ee", "fill-opacity": 0.12 }});
-    mlMap.addLayer({ id: "bbox-line", type: "line", source: "bbox",
-                     paint: { "line-color": "#22d3ee", "line-width": 2 }});
-    mlHasLayer = true;
-
-    if (bbox) drawOnCoordsMap(bbox, true);
-  });
-
-  // auto-resize with panel
-  const formEl = document.getElementById("coordsForm");
-  if (formEl) new ResizeObserver(() => queueCoordsMapRefresh()).observe(formEl);
-}
-
-function drawOnCoordsMap(b, fitNow = false) {
-  if (!mlMap || !mlHasLayer) return;
-  const poly = {
-    type: "Feature",
-    geometry: {
-      type: "Polygon",
-      coordinates: [[
-        [b.lonW, b.latS],
-        [b.lonE, b.latS],
-        [b.lonE, b.latN],
-        [b.lonW, b.latN],
-        [b.lonW, b.latS],
-      ]]
-    },
-    properties: {}
-  };
-  mlMap.getSource("bbox").setData({ type: "FeatureCollection", features: [poly] });
-  mlBounds = new maplibregl.LngLatBounds([b.lonW, b.latS], [b.lonE, b.latN]);
-  if (fitNow) mlMap.fitBounds(mlBounds, { padding: 14, animate: false });
-}
-
-function queueCoordsMapRefresh() {
-  if (!mlMap) return;
-  requestAnimationFrame(() => {
-    mlMap.resize();
-    if (mlBounds) mlMap.fitBounds(mlBounds, { padding: 14, animate: false });
-  });
-}
-
-// Handle open/close
-openCoordsForm?.addEventListener("click", () => {
-  coordsForm?.classList.toggle("hidden");
-  if (!coordsForm?.classList.contains("hidden")) {
-    initCoordsMapIfNeeded();
-    setTimeout(queueCoordsMapRefresh, 80);
-    if (bbox) { prefillCoords(bbox); drawOnCoordsMap(bbox, true); }
+  function prefillCoords(b) {
+    if (!b) return;
+    if (coordLonW) coordLonW.value = b.lonW;
+    if (coordLonE) coordLonE.value = b.lonE;
+    if (coordLatS) coordLatS.value = b.latS;
+    if (coordLatN) coordLatN.value = b.latN;
   }
-});
-cancelCoordsBtn?.addEventListener("click", () => coordsForm?.classList.add("hidden"));
+  
+  function initCoordsMapIfNeeded() {
+    if (mlMap || !document.getElementById("coordsMap")) return;
+    mlMap = new maplibregl.Map({ container: "coordsMap", style: "https://demotiles.maplibre.org/style.json", center: [0, 20], zoom: 1.5, attributionControl: false });
+    mlMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+    mlMap.on("load", () => {
+      const waterBlue = "#0ea5e9";
+      try { mlMap.setPaintProperty("background", "background-color", waterBlue); } catch {}
+      (mlMap.getStyle().layers || []).forEach(l => {
+        if (l.type === "fill") { mlMap.setPaintProperty(l.id, "fill-color", (l.id || "").includes("water") ? waterBlue : "#ffffff"); }
+      });
+      mlMap.addSource("bbox", { type: "geojson", data: { type: "FeatureCollection", features: [] }});
+      mlMap.addLayer({ id: "bbox-fill", type: "fill", source: "bbox", paint: { "fill-color": "#22d3ee", "fill-opacity": 0.12 }});
+      mlMap.addLayer({ id: "bbox-line", type: "line", source: "bbox", paint: { "line-color": "#22d3ee", "line-width": 2 }});
+      mlHasLayer = true;
+      if (bbox) drawOnCoordsMap(bbox, true);
+    });
+    if (document.getElementById("coordsForm")) new ResizeObserver(() => queueCoordsMapRefresh()).observe(document.getElementById("coordsForm"));
+  }
 
-// Sync when typing in fields
-["input","change"].forEach(ev => {
-  [coordLonW, coordLonE, coordLatS, coordLatN].forEach(el =>
-    el?.addEventListener(ev, () => {
-      let W = parseFloat(coordLonW.value), E = parseFloat(coordLonE.value),
-          S = parseFloat(coordLatS.value), N = parseFloat(coordLatN.value);
-      if (![W,E,S,N].every(Number.isFinite)) return;
-      if (W > E) [W,E] = [E,W];
-      if (S > N) [S,N] = [N,S];
-      const b = { lonW: round(W), lonE: round(E), latS: round(S), latN: round(N) };
+  function drawOnCoordsMap(b, fitNow = false) {
+    if (!mlMap || !mlHasLayer) return;
+    const poly = { type: "Feature", geometry: { type: "Polygon", coordinates: [[ [b.lonW, b.latS], [b.lonE, b.latS], [b.lonE, b.latN], [b.lonW, b.latN], [b.lonW, b.latS] ]] }, properties: {} };
+    mlMap.getSource("bbox").setData({ type: "FeatureCollection", features: [poly] });
+    mlBounds = new maplibregl.LngLatBounds([b.lonW, b.latS], [b.lonE, b.latN]);
+    if (fitNow) mlMap.fitBounds(mlBounds, { padding: 14, animate: false });
+  }
 
-      // update hidden fields + preview label
-      const numeric  = `${b.lonW},${b.latS} to ${b.lonE},${b.latN}`;
-      const cardinal = `${fmtLon(b.lonW)}, ${fmtLat(b.latS)} to ${fmtLon(b.lonE)}, ${fmtLat(b.latN)}`;
-      areaHidden.value = numeric; areaHiddenCard.value = cardinal;
-      previewWrap.classList.remove("hidden"); previewLabel.textContent = cardinal;
-      openPickerBtn.textContent = "Change Selected Area";
+  function queueCoordsMapRefresh() {
+    if (!mlMap) return;
+    requestAnimationFrame(() => { mlMap.resize(); if (mlBounds) mlMap.fitBounds(mlBounds, { padding: 14, animate: false }); });
+  }
 
-      drawOnCoordsMap(b, true);
-    })
-  );
-});
+  openCoordsForm?.addEventListener("click", () => {
+    coordsForm?.classList.toggle("hidden");
+    if (!coordsForm?.classList.contains("hidden")) {
+      initCoordsMapIfNeeded();
+      setTimeout(queueCoordsMapRefresh, 80);
+      if (bbox) { prefillCoords(bbox); drawOnCoordsMap(bbox, true); }
+    }
+  });
+  cancelCoordsBtn?.addEventListener("click", () => coordsForm?.classList.add("hidden"));
 
-// also wire "use" button
-useCoordsBtn?.addEventListener("click", () => {
-  if (coordLonW && coordLonE && coordLatS && coordLatN) {
-    const W = parseFloat(coordLonW.value), E = parseFloat(coordLonE.value),
-          S = parseFloat(coordLatS.value), N = parseFloat(coordLatN.value);
-    if ([W,E,S,N].every(Number.isFinite)) {
-      const b = {
-        lonW: round(Math.min(W,E)), lonE: round(Math.max(W,E)),
-        latS: round(Math.min(S,N)), latN: round(Math.max(S,N))
-      };
-      // persist to app state + UI
-      const numeric  = `${b.lonW},${b.latS} to ${b.lonE},${b.latN}`;
-      const cardinal = `${fmtLon(b.lonW)}, ${fmtLat(b.latS)} to ${fmtLon(b.lonE)}, ${fmtLat(b.latN)}`;
-      areaHidden.value = numeric;
-      areaHiddenCard.value = cardinal;
-      previewWrap.classList.remove("hidden");
-      previewLabel.textContent = cardinal;
-      openPickerBtn.textContent = "Change Selected Area";
-      bbox = b;                      // save as the coords to use
-      prefillCoords(b);              // normalize inputs
-      drawOnCoordsMap(b, true);      // fit the mini-map
-      coordsForm?.classList.add("hidden"); // close panel
+  function handleLiveCoordPreview() {
+    const W = parseFloat(coordLonW.value), E = parseFloat(coordLonE.value), S = parseFloat(coordLatS.value), N = parseFloat(coordLatN.value);
+    if ([W, E, S, N].every(Number.isFinite)) {
+      const previewBbox = { lonW: W, lonE: E, latS: S, latN: N };
+      drawOnCoordsMap(previewBbox, true);
+      coordsError.classList.add("hidden");
     }
   }
+
+  [coordLonW, coordLonE, coordLatS, coordLatN].forEach(el => el?.addEventListener('input', handleLiveCoordPreview));
+
+  useCoordsBtn?.addEventListener("click", () => {
+    const W = parseFloat(coordLonW.value), E = parseFloat(coordLonE.value), S = parseFloat(coordLatS.value), N = parseFloat(coordLatN.value);
+    if (![W, E, S, N].every(Number.isFinite)) {
+      coordsError.textContent = "Please provide four valid coordinate numbers.";
+      coordsError.classList.remove("hidden");
+      return;
+    }
+    coordsError.classList.add("hidden");
+    const normalizedBbox = { lonW: round(Math.min(W, E)), lonE: round(Math.max(W, E)), latS: round(Math.min(S, N)), latN: round(Math.max(S, N)) };
+    bbox = normalizedBbox;
+    prefillCoords(bbox);
+    updateFormUIFromBbox();
+    syncBboxToLeafletMap(bbox);
+    coordsForm?.classList.add("hidden");
+  });
+
+  clearCoordsBtn?.addEventListener("click", () => {
+    coordLonW.value = ''; coordLonE.value = ''; coordLatS.value = ''; coordLatN.value = '';
+    coordsError.classList.add('hidden');
+    if (mlMap && mlHasLayer) mlMap.getSource("bbox").setData({ type: "FeatureCollection", features: [] });
+  });
+
+  // ===== Main Clear Button with Confirmation =====
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (confirm("Are you sure you want to clear the entire form?")) {
+        form.reset();
+        setUrgency('Standard (2–3 days)');
+        statusEl.textContent = '';
+        statusEl.classList.add('hidden');
+        // Reset map state
+        bbox = null;
+        if (drawn) drawn.clearLayers();
+        currentRect = null;
+        updateFormUIFromBbox();
+      }
+    });
+  }
 });
-
-
-
-
 </script>
 
 </body>
