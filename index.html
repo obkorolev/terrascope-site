@@ -70,6 +70,9 @@
         radial-gradient(100% 80% at 85% 35%, rgba(200,160,255,.16), transparent 60%);
       animation:driftA 60s ease-in-out infinite;
     }
+    #message::placeholder {
+    color: #ffffff91; /* light cyan */
+    }
     .cinema::after{
       background:conic-gradient(from 0deg at 60% 15%, rgba(120,200,255,.10),
                  transparent 35%, rgba(200,160,255,.10) 65%, transparent 85%);
@@ -218,7 +221,7 @@
             <label for="message" class="block text-white-300 mb-1 text-sm">Describe the data you need</label>
             <textarea id="message" name="message" rows="2" required
                       class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                      placeholder="Please be as specific as possible. Include the variable, desired format (e.g., CSV, GeoTIFF), and any other constraints."></textarea>
+                      placeholder="Please be specific — include variable (e.g. Sea Surface Temperature), time range, area/coords, desired format (CSV, GeoTIFF, etc.), and any processing (e.g. monthly average, maps, trends etc.)."></textarea>
           </div>
 
           <!-- Date and Area Section -->
