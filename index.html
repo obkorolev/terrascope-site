@@ -43,6 +43,26 @@
       .hero-accent{ animation: none; }
     }
 
+    .time-range-wrapper {
+    display: flex;  /* Assuming this is already set for desktop */
+    justify-content: space-between;
+    gap: 1rem;  /* Space between inputs */
+}
+
+    /* Mobile fix */
+    @media (max-width: 768px) {  /* Adjust breakpoint as needed, e.g., 600px for phones */
+        .time-range-wrapper {
+            flex-direction: column;  /* Stack vertically */
+        }
+        .time-range-wrapper > div {  /* Target the child divs with inputs */
+            width: 100%;  /* Ensure full width, no overflow */
+        }
+        input[type="date"], input[type="text"] {  /* Or whatever type your dates use */
+            width: 100%;  /* Force inputs to match container */
+            box-sizing: border-box;  /* Include padding/borders in width */
+        }
+    }
+
     /* Map containers */
     #leafletMapSheet { height:100%; min-height:320px; }
     .leaflet-container { background: #0a0a0a; }
