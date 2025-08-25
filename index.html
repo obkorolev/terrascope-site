@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale-1.0"/>
   <title>TerraScope — Satellite Data On Demand</title>
 
   <!-- Tailwind -->
@@ -224,20 +224,18 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Date Pickers -->
               <div>
-                    <label class="block text-white-300 mb-1 text-sm">Time Range</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <!-- Wrapped Start Date -->
-                        <div>
-                            <input id="start_date" name="start_date" type="text" placeholder="Start Date" required
-                                    class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
-                        </div>
-                        <!-- Wrapped End Date -->
-                        <div>
-                            <input id="end_date" name="end_date" type="text" placeholder="End Date" required
-                                    class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
-                        </div>
-                    </div>
-                </div>
+                  <label class="block text-white-300 mb-1 text-sm">Time Range</label>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <input id="start_date" name="start_date" type="text" placeholder="Start Date" required
+                              class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+                      </div>
+                      <div>
+                        <input id="end_date" name="end_date" type="text" placeholder="End Date" required
+                              class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+                      </div>
+                  </div>
+              </div>
 
               <!-- Area Picker -->
               <div class="md:col-span-2">
@@ -252,7 +250,7 @@
                     </div>
                 </div>
                  <!-- Button Group -->
-                <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-center justify-center md:justify-start gap-3 flex-wrap">
                     <button id="openAreaPicker" type="button" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
                         Draw Area on Map
                     </button>
@@ -540,20 +538,21 @@ window.addEventListener('DOMContentLoaded', () => {
   const startDateEl = document.getElementById("start_date");
   const endDateEl   = document.getElementById("end_date");
   if (startDateEl && endDateEl) {
+    // This is the class string that will be applied to the visible date picker input
+    const flatpickrAltClass = 'flatpickr-alt min-w-0 w-full rounded-xl px-3 py-2 ' +
+                              'bg-white/5 border border-white/20 focus:outline-none focus:ring-2 ' +
+                              'focus:ring-cyan-400 placeholder-gray-300';
+    
     const fpStart = flatpickr(startDateEl, {
       altInput: true,
-      altInputClass:
-        'flatpickr-alt w-full rounded-xl px-3 py-2 ' +
-        'bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
+      altInputClass: flatpickrAltClass,
       altFormat: 'M j, Y',
       dateFormat: 'Y-m-d',
       onChange(selectedDates){ fpEnd.set('minDate', selectedDates[0]); }
     });
     const fpEnd = flatpickr(endDateEl, {
       altInput: true,
-      altInputClass:
-        'flatpickr-alt w-full rounded-xl px-3 py-2 ' +
-        'bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
+      altInputClass: flatpickrAltClass,
       altFormat: 'M j, Y',
       dateFormat: 'Y-m-d'
     });
@@ -665,7 +664,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const coordLatN       = document.getElementById("coordLatN");
   const useCoordsBtn    = document.getElementById("useCoordsBtn");
   const cancelCoordsBtn = document.getElementById("cancelCoordsBtn");
-  const clearCoordsBtn  = document.getElementById("clearCoordsBtn");
+  const clearCoordsBtnManual  = document.getElementById("clearCoordsBtn");
   const coordsError     = document.getElementById("coordsError");
   
   let mlMap, mlBounds, mlHasLayer = false;
@@ -747,7 +746,7 @@ window.addEventListener('DOMContentLoaded', () => {
     coordsForm?.classList.add("hidden");
   });
 
-  clearCoordsBtn?.addEventListener("click", () => {
+  clearCoordsBtnManual?.addEventListener("click", () => {
     coordLonW.value = ''; coordLonE.value = ''; coordLatS.value = ''; coordLatN.value = '';
     coordsError.classList.add('hidden');
     if (mlMap && mlHasLayer) mlMap.getSource("bbox").setData({ type: "FeatureCollection", features: [] });
