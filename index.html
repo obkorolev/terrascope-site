@@ -219,104 +219,101 @@
                       placeholder="Please be as specific as possible. Include the variable, desired format (e.g., CSV, GeoTIFF), and any other constraints."></textarea>
           </div>
 
-          <!-- Date and Area Section -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Date Pickers -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:col-span-2">
-                    <label class="block text-white-300 mb-1 text-sm col-span-1 sm:col-span-2">Time Range</label>
-                    <!-- Wrapped Start Date -->
-                    <div class="col-span-1">
-                        <input id="start_date" name="start_date" type="text" placeholder="Start Date" required
-                                class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
-                    </div>
-                    <!-- Wrapped End Date -->
-                    <div class="col-span-1">
-                        <input id="end_date" name="end_date" type="text" placeholder="End Date" required
-                                class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
-                    </div>
+          <!-- Date Pickers -->
+          <div>
+              <label class="block text-white-300 mb-1 text-sm">Time Range</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                      <input id="start_date" name="start_date" type="text" placeholder="Start Date" required
+                              class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+                  </div>
+                  <div>
+                      <input id="end_date" name="end_date" type="text" placeholder="End Date" required
+                              class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+                  </div>
+              </div>
+          </div>
+
+          <!-- Area Picker -->
+          <div>
+            <label class="block text-white-300 mb-1 text-sm">Area of Interest</label>
+            <div id="areaPreview" class="hidden mt-1 mb-2 rounded-xl border border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
+                <div class="flex items-center justify-between px-3 py-2">
+                    <span class="text-xs text-white-300">Selected Area</span>
+                    <button id="editAreaBtn" type="button" class="text-xs text-cyan-300 hover:text-cyan-200 underline">Edit on map</button>
                 </div>
-
-              <!-- Area Picker -->
-              <div class="md:col-span-2">
-                <label class="block text-white-300 mb-1 text-sm">Area of Interest</label>
-                <div id="areaPreview" class="hidden mt-1 mb-2 rounded-xl border border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
-                    <div class="flex items-center justify-between px-3 py-2">
-                        <span class="text-xs text-white-300">Selected Area</span>
-                        <button id="editAreaBtn" type="button" class="text-xs text-cyan-300 hover:text-cyan-200 underline">Edit on map</button>
-                    </div>
-                    <div class="px-3 py-2 text-xs text-gray-300 border-t border-white/10">
-                        <span id="bboxLabelInline">—</span>
-                    </div>
+                <div class="px-3 py-2 text-xs text-gray-300 border-t border-white/10">
+                    <span id="bboxLabelInline">—</span>
                 </div>
-                 <!-- Button Group -->
-                <div class="flex items-center gap-3 flex-wrap">
-                    <button id="openAreaPicker" type="button" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
-                        Draw Area on Map
-                    </button>
-                    <button id="openCoordsForm" type="button" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
-                      Add Coordinates Manually
-                    </button>
-                </div>
+            </div>
+             <!-- Button Group -->
+            <div class="flex items-center gap-3 flex-wrap">
+                <button id="openAreaPicker" type="button" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
+                    Draw Area on Map
+                </button>
+                <button id="openCoordsForm" type="button" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
+                  Add Coordinates Manually
+                </button>
+            </div>
 
-                <div id="coordsForm" class="hidden mt-4 rounded-xl border border-white/20 bg-white/5 p-3">
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-                    <!-- LEFT: fields -->
-                    <div class="space-y-2">
-                      <div class="grid grid-cols-2 gap-2">
-                        <div>
-                          <label class="text-xs">West Lon (°)</label>
-                          <input id="coordLonW" type="number" step="0.0001" min="-180" max="180"
-                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
-                        </div>
-                        <div>
-                          <label class="text-xs">East Lon (°)</label>
-                          <input id="coordLonE" type="number" step="0.0001" min="-180" max="180"
-                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
-                        </div>
-                        <div>
-                          <label class="text-xs">South Lat (°)</label>
-                          <input id="coordLatS" type="number" step="0.0001" min="-90" max="90"
-                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
-                        </div>
-                        <div>
-                          <label class="text-xs">North Lat (°)</label>
-                          <input id="coordLatN" type="number" step="0.0001" min="-90" max="90"
-                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
-                        </div>
-                      </div>
-
-                      <p id="coordsError" class="text-xs text-red-300 hidden"></p>
-
-                      <div class="flex gap-2 flex-wrap">
-                        <button id="useCoordsBtn" type="button"
-                                class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
-                          Use these coordinates
-                        </button>
-                         <button id="clearCoordsBtn" type="button" class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
-                          Clear
-                        </button>
-                        <button id="cancelCoordsBtn" type="button"
-                                class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-
-                    <!-- RIGHT: live map -->
+            <div id="coordsForm" class="hidden mt-4 rounded-xl border border-white/20 bg-white/5 p-3">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+                <!-- LEFT: fields -->
+                <div class="space-y-2">
+                  <div class="grid grid-cols-2 gap-2">
                     <div>
-                      <div id="coordsMap" class="rounded-xl border border-white/10" style="height:240px;"></div>
-                      <p class="mt-1 text-xs text-white/50">Live preview</p>
+                      <label class="text-xs">West Lon (°)</label>
+                      <input id="coordLonW" type="number" step="0.0001" min="-180" max="180"
+                            class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
+                    </div>
+                    <div>
+                      <label class="text-xs">East Lon (°)</label>
+                      <input id="coordLonE" type="number" step="0.0001" min="-180" max="180"
+                            class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
+                    </div>
+                    <div>
+                      <label class="text-xs">South Lat (°)</label>
+                      <input id="coordLatS" type="number" step="0.0001" min="-90" max="90"
+                            class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
+                    </div>
+                    <div>
+                      <label class="text-xs">North Lat (°)</label>
+                      <input id="coordLatN" type="number" step="0.0001" min="-90" max="90"
+                            class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
                     </div>
                   </div>
+
+                  <p id="coordsError" class="text-xs text-red-300 hidden"></p>
+
+                  <div class="flex gap-2 flex-wrap">
+                    <button id="useCoordsBtn" type="button"
+                            class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
+                      Use these coordinates
+                    </button>
+                     <button id="clearCoordsBtn" type="button" class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
+                      Clear
+                    </button>
+                    <button id="cancelCoordsBtn" type="button"
+                            class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+
+                <!-- RIGHT: live map -->
+                <div>
+                  <div id="coordsMap" class="rounded-xl border border-white/10" style="height:240px;"></div>
+                  <p class="mt-1 text-xs text-white/50">Live preview</p>
                 </div>
               </div>
+            </div>
           </div>
           
           <input type="hidden" id="area_bbox_cardinal" name="area_bbox_cardinal" />
           <input type="hidden" id="area_bbox" name="area_bbox" />
 
           <!-- Controls: urgency + actions -->
-          <div class="mt-4 grid grid-cols-1 sm:grid-cols-[auto,1fr] items-center gap-4">
+          <div class="pt-4 grid grid-cols-1 sm:grid-cols-[auto,1fr] items-center gap-4">
             <div class="justify-self-center sm:justify-self-start">
               <div id="urgencySelect" class="urg urg-standard relative inline-block flex-shrink-0">
                 <input type="hidden" name="urgency" id="urgVal" value="Standard (2–3 days)"/>
