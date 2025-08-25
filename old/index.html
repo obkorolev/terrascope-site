@@ -12,8 +12,37 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
   <!-- Flatpickr (Calendar) CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 
   <style>
+
+    /* Scale-style accent: animated conic gradient, light stroke, soft glow */
+    .hero-accent{
+      background: conic-gradient(from 210deg at 50% 50%,
+                  #a78bfa, #60a5fa, #22d3ee, #f472b6, #a78bfa);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+
+      /* subtle definition so it doesn’t look “flat” */
+      -webkit-text-stroke: 0.6px rgba(255,255,255,.22);
+      text-shadow:
+        0 0 24px rgba(147,112,219,.35),
+        0 0 48px rgba(34,211,238,.18);
+
+      animation: heroHue 12s ease-in-out infinite alternate;
+    }
+    @keyframes heroHue{
+      0%{ background-position: 0% 50%; }
+      100%{ background-position: 100% 50%; }
+    }
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      .hero-accent{ animation: none; }
+    }
+
     /* Map containers */
     #leafletMapSheet { height:100%; min-height:320px; }
     .leaflet-container { background: #0a0a0a; }
@@ -136,7 +165,7 @@
   <header class="relative w-full bg-transparent">
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
       <a href="#hero" class="flex items-center gap-3">
-        <img src="./terrascope.jpg" alt="TerraScope logo" class="h-8 md:h-9 w-auto object-contain" />
+        <img src="./earthlabs.png" alt="TerraScope logo" class="h-8 md:h-9 w-auto object-contain" />
       </a>
       <nav class="space-x-8 text-sm">
         <a href="#about" class="hover:text-cyan-400 transition">About</a>
@@ -157,11 +186,11 @@
     <div class="botfade"></div>
     <div class="absolute inset-x-0 top-0 z-20" style="height: 400px; background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0));"></div>
 
-    <div class="relative z-30 max-w-6xl mx-auto px-6 pt-20 md:pt-20 text-center">
-      <h1 class="text-5xl md:text-7xl font-normal tracking-tight leading-tight bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 bg-clip-text text-transparent">
-        Processed Satellite Data,<wbr> Delivered
+    <div class="relative z-30 max-w-5xl mx-auto px-6 pt-20 md:pt-20 text-center">
+      <h1 class="hero-title text-5xl md:text-7xl font-thin tracking-tight leading-tight text-white">
+        Processed <span class="hero-accent">Satellite Data</span> - Delivered
       </h1>
-      <p class="mt-8 text-2xl md:text-xl font-bold text-gray-100 max-w-4xl mx-auto">
+      <p class="mt-8 text-2xl md:text-xl font-normal text-gray-100 max-w-4xl mx-auto">
         From plain language requests to Oceanographic Datasets — ready to use in your inbox.
       </p>
 
@@ -186,7 +215,7 @@
 
           <div>
             <label for="message" class="block text-white-300 mb-1 text-sm">Describe the Data You Need</label>
-            <textarea id="message" name="message" rows="5" required
+            <textarea id="message" name="message" rows="2" required
                       class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
                       placeholder="Please be as specific as possible. Include the variable, desired format (e.g., CSV, GeoTIFF), and any other constraints."></textarea>
           </div>
@@ -196,11 +225,11 @@
               <!-- Date Pickers -->
               <div>
                   <label class="block text-white-300 mb-1 text-sm">Time Range</label>
-                  <div class="grid grid-cols-2 gap-3">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <input id="start_date" name="start_date" type="text" placeholder="Start Date" required
-                             class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+                            class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
                       <input id="end_date" name="end_date" type="text" placeholder="End Date" required
-                             class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
+                            class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
                   </div>
               </div>
               <!-- Area Picker -->
@@ -219,6 +248,62 @@
                       Select Area on Map
                   </button>
               </div>
+              <div class="mt-2 col-span-full">
+                <button id="openCoordsForm" type="button"
+                        class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium bg-white/10 hover:bg-white/20 transition">
+                  Add Coordinates Manually
+                </button>
+
+                <div id="coordsForm" class="hidden mt-2 rounded-xl border border-white/20 bg-white/5 p-3">
+                  <div class="grid grid-cols-2 sm:grid-cols-2 gap-3 items-start">
+                    <!-- LEFT: fields -->
+                    <div class="space-y-2">
+                      <div class="grid grid-cols-2 gap-2">
+                        <div>
+                          <label class="text-xs">West Lon (°)</label>
+                          <input id="coordLonW" type="number" step="0.0001" min="-180" max="180"
+                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
+                        </div>
+                        <div>
+                          <label class="text-xs">East Lon (°)</label>
+                          <input id="coordLonE" type="number" step="0.0001" min="-180" max="180"
+                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
+                        </div>
+                        <div>
+                          <label class="text-xs">South Lat (°)</label>
+                          <input id="coordLatS" type="number" step="0.0001" min="-90" max="90"
+                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
+                        </div>
+                        <div>
+                          <label class="text-xs">North Lat (°)</label>
+                          <input id="coordLatN" type="number" step="0.0001" min="-90" max="90"
+                                class="w-full rounded-xl px-2 py-1 bg-black/30 border border-white/20">
+                        </div>
+                      </div>
+
+                      <p id="coordsError" class="text-xs text-red-300 hidden"></p>
+
+                      <div class="flex gap-2">
+                        <button id="useCoordsBtn" type="button"
+                                class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
+                          Use these coordinates
+                        </button>
+                        <button id="cancelCoordsBtn" type="button"
+                                class="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- RIGHT: live map -->
+                    <div>
+                      <div id="coordsMap" class="rounded-xl border border-white/10" style="height:260px;"></div>
+                      <p class="mt-1 text-xs text-white/50">Live preview</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
           </div>
           
           <input type="hidden" id="area_bbox_cardinal" name="area_bbox_cardinal" />
@@ -437,19 +522,29 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // ===== DATE PICKER (FLATPICKR) LOGIC =====
+// ===== DATE PICKER (FLATPICKR) LOGIC =====
   const startDateEl = document.getElementById("start_date");
-  const endDateEl = document.getElementById("end_date");
+  const endDateEl   = document.getElementById("end_date");
   if (startDateEl && endDateEl) {
-      const fpEnd = flatpickr(endDateEl, {
-          altInput: true, altFormat: "M j, Y", dateFormat: "Y-m-d",
-      });
-      const fpStart = flatpickr(startDateEl, {
-          altInput: true, altFormat: "M j, Y", dateFormat: "Y-m-d",
-          onChange: function(selectedDates, dateStr, instance) {
-              fpEnd.set('minDate', selectedDates[0]);
-          },
-      });
+    const fpStart = flatpickr(startDateEl, {
+      altInput: true,
+      altInputClass:
+        'flatpickr-alt w-full max-w-xs sm:max-w-none mx-auto rounded-xl px-3 py-2 ' +
+        'bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
+      altFormat: 'M j, Y',
+      dateFormat: 'Y-m-d',
+      onChange(selectedDates){ fpEnd.set('minDate', selectedDates[0]); }
+    });
+    const fpEnd = flatpickr(endDateEl, {
+      altInput: true,
+      altInputClass:
+        'flatpickr-alt w-full max-w-xs sm:max-w-none mx-auto rounded-xl px-3 py-2 ' +
+        'bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
+      altFormat: 'M j, Y',
+      dateFormat: 'Y-m-d'
+    });
   }
+  
 
   // ===== AREA PICKER (MODAL LOGIC) =====
   const openPickerBtn = document.getElementById("openAreaPicker");
@@ -495,6 +590,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const cardinal = `${fmtLon(bbox.lonW)}, ${fmtLat(bbox.latS)} to ${fmtLon(bbox.lonE)}, ${fmtLat(bbox.latN)}`;
     bboxLabel.textContent = cardinal; areaHidden.value = numeric; areaHiddenCard.value = cardinal;
     if (!previewWrap.classList.contains("hidden")) { previewLabel.textContent = cardinal; }
+    prefillCoords?.(bbox);
+    if (coordsMap) drawOnCoordsMap(bbox);
   }
   resetBboxBtn?.addEventListener("click", () => { if (drawn) drawn.clearLayers(); currentRect = null; bbox = null; bboxLabel.textContent = "No selection yet."; areaHidden.value = areaHiddenCard.value = ""; previewWrap.classList.add("hidden"); openPickerBtn.textContent = "Select Area on Map"; });
   function showPreview(b) { if (!b) return; previewWrap.classList.remove("hidden"); const cardinal = `${fmtLon(b.lonW)}, ${fmtLat(b.latS)} to ${fmtLon(b.lonE)}, ${fmtLat(b.latN)}`; previewLabel.textContent = cardinal; openPickerBtn.textContent = "Change Selected Area"; }
@@ -504,6 +601,163 @@ window.addEventListener('DOMContentLoaded', () => {
   closeModalBtn?.addEventListener("click", closeMapModal);
   mapModalBackdrop?.addEventListener("click", closeMapModal);
 });
+
+// ===== Manual coordinates + MapLibre inline map =====
+const openCoordsForm  = document.getElementById("openCoordsForm");
+const coordsForm      = document.getElementById("coordsForm");
+const coordLonW       = document.getElementById("coordLonW");
+const coordLonE       = document.getElementById("coordLonE");
+const coordLatS       = document.getElementById("coordLatS");
+const coordLatN       = document.getElementById("coordLatN");
+const useCoordsBtn    = document.getElementById("useCoordsBtn");
+const cancelCoordsBtn = document.getElementById("cancelCoordsBtn");
+
+let mlMap, mlBounds, mlHasLayer = false;
+
+// Fill inputs from bbox object
+function prefillCoords(b) {
+  if (!b) return;
+  if (coordLonW) coordLonW.value = b.lonW;
+  if (coordLonE) coordLonE.value = b.lonE;
+  if (coordLatS) coordLatS.value = b.latS;
+  if (coordLatN) coordLatN.value = b.latN;
+}
+
+function initCoordsMapIfNeeded() {
+  if (mlMap || !document.getElementById("coordsMap")) return;
+
+  mlMap = new maplibregl.Map({
+    container: "coordsMap",
+    style: "https://demotiles.maplibre.org/style.json",
+    center: [0, 20],
+    zoom: 1.5,
+    attributionControl: false,
+  });
+  mlMap.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+
+  mlMap.on("load", () => {
+    // recolor land/water
+    const waterBlue = "#0ea5e9";
+    try { mlMap.setPaintProperty("background", "background-color", waterBlue); } catch {}
+    const layers = mlMap.getStyle().layers || [];
+    layers.forEach(l => {
+      if (l.type === "fill") {
+        if ((l.id || "").includes("water")) {
+          mlMap.setPaintProperty(l.id, "fill-color", waterBlue);
+        } else {
+          mlMap.setPaintProperty(l.id, "fill-color", "#ffffff");
+        }
+      }
+    });
+
+    // add bbox source + layers
+    mlMap.addSource("bbox", { type: "geojson", data: { type: "FeatureCollection", features: [] }});
+    mlMap.addLayer({ id: "bbox-fill", type: "fill", source: "bbox",
+                     paint: { "fill-color": "#22d3ee", "fill-opacity": 0.12 }});
+    mlMap.addLayer({ id: "bbox-line", type: "line", source: "bbox",
+                     paint: { "line-color": "#22d3ee", "line-width": 2 }});
+    mlHasLayer = true;
+
+    if (bbox) drawOnCoordsMap(bbox, true);
+  });
+
+  // auto-resize with panel
+  const formEl = document.getElementById("coordsForm");
+  if (formEl) new ResizeObserver(() => queueCoordsMapRefresh()).observe(formEl);
+}
+
+function drawOnCoordsMap(b, fitNow = false) {
+  if (!mlMap || !mlHasLayer) return;
+  const poly = {
+    type: "Feature",
+    geometry: {
+      type: "Polygon",
+      coordinates: [[
+        [b.lonW, b.latS],
+        [b.lonE, b.latS],
+        [b.lonE, b.latN],
+        [b.lonW, b.latN],
+        [b.lonW, b.latS],
+      ]]
+    },
+    properties: {}
+  };
+  mlMap.getSource("bbox").setData({ type: "FeatureCollection", features: [poly] });
+  mlBounds = new maplibregl.LngLatBounds([b.lonW, b.latS], [b.lonE, b.latN]);
+  if (fitNow) mlMap.fitBounds(mlBounds, { padding: 14, animate: false });
+}
+
+function queueCoordsMapRefresh() {
+  if (!mlMap) return;
+  requestAnimationFrame(() => {
+    mlMap.resize();
+    if (mlBounds) mlMap.fitBounds(mlBounds, { padding: 14, animate: false });
+  });
+}
+
+// Handle open/close
+openCoordsForm?.addEventListener("click", () => {
+  coordsForm?.classList.toggle("hidden");
+  if (!coordsForm?.classList.contains("hidden")) {
+    initCoordsMapIfNeeded();
+    setTimeout(queueCoordsMapRefresh, 80);
+    if (bbox) { prefillCoords(bbox); drawOnCoordsMap(bbox, true); }
+  }
+});
+cancelCoordsBtn?.addEventListener("click", () => coordsForm?.classList.add("hidden"));
+
+// Sync when typing in fields
+["input","change"].forEach(ev => {
+  [coordLonW, coordLonE, coordLatS, coordLatN].forEach(el =>
+    el?.addEventListener(ev, () => {
+      let W = parseFloat(coordLonW.value), E = parseFloat(coordLonE.value),
+          S = parseFloat(coordLatS.value), N = parseFloat(coordLatN.value);
+      if (![W,E,S,N].every(Number.isFinite)) return;
+      if (W > E) [W,E] = [E,W];
+      if (S > N) [S,N] = [N,S];
+      const b = { lonW: round(W), lonE: round(E), latS: round(S), latN: round(N) };
+
+      // update hidden fields + preview label
+      const numeric  = `${b.lonW},${b.latS} to ${b.lonE},${b.latN}`;
+      const cardinal = `${fmtLon(b.lonW)}, ${fmtLat(b.latS)} to ${fmtLon(b.lonE)}, ${fmtLat(b.latN)}`;
+      areaHidden.value = numeric; areaHiddenCard.value = cardinal;
+      previewWrap.classList.remove("hidden"); previewLabel.textContent = cardinal;
+      openPickerBtn.textContent = "Change Selected Area";
+
+      drawOnCoordsMap(b, true);
+    })
+  );
+});
+
+// also wire "use" button
+useCoordsBtn?.addEventListener("click", () => {
+  if (coordLonW && coordLonE && coordLatS && coordLatN) {
+    const W = parseFloat(coordLonW.value), E = parseFloat(coordLonE.value),
+          S = parseFloat(coordLatS.value), N = parseFloat(coordLatN.value);
+    if ([W,E,S,N].every(Number.isFinite)) {
+      const b = {
+        lonW: round(Math.min(W,E)), lonE: round(Math.max(W,E)),
+        latS: round(Math.min(S,N)), latN: round(Math.max(S,N))
+      };
+      // persist to app state + UI
+      const numeric  = `${b.lonW},${b.latS} to ${b.lonE},${b.latN}`;
+      const cardinal = `${fmtLon(b.lonW)}, ${fmtLat(b.latS)} to ${fmtLon(b.lonE)}, ${fmtLat(b.latN)}`;
+      areaHidden.value = numeric;
+      areaHiddenCard.value = cardinal;
+      previewWrap.classList.remove("hidden");
+      previewLabel.textContent = cardinal;
+      openPickerBtn.textContent = "Change Selected Area";
+      bbox = b;                      // save as the coords to use
+      prefillCoords(b);              // normalize inputs
+      drawOnCoordsMap(b, true);      // fit the mini-map
+      coordsForm?.classList.add("hidden"); // close panel
+    }
+  }
+});
+
+
+
+
 </script>
 
 </body>
