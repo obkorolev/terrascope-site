@@ -433,6 +433,13 @@
     </div>
   </section>
 
+  <!-- WIREFRAME WATER (embeds above footer) -->
+  <section class="bg-black pt-8 pb-0">
+    <div class="relative w-full h-[42vh] md:h-[52vh]">
+      <canvas id="waveCanvas" class="absolute inset-0 w-full h-full block"></canvas>
+    </div>
+  </section>
+
   <!-- FOOTER -->
   <footer class="bg-white/5 py-6 text-center text-gray-500 text-sm">
     © 2025 OceanSat Labs. All rights reserved.
@@ -808,6 +815,115 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+<!-- Three.js (remove this line if you already load it elsewhere) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+// --- Perlin noise 3D (coherent) --------------------------------------------
+(function initPerlin(){
+  const p = new Uint8Array(256);
+  for (let i=0;i<256;i++) p[i]=i;
+  for (let i=255;i>0;i--) { const j=(Math.random()*(i+1))|0; const t=p[i]; p[i]=p[j]; p[j]=t; }
+  const perm = new Uint8Array(512);
+  for (let i=0;i<512;i++) perm[i]=p[i&255];
+  const fade = t => t*t*t*(t*(t*6-15)+10);
+  const lerp = (t,a,b) => a + t*(b-a);
+  const grad = (h,x,y,z) => {
+    const u = (h&15) < 8 ? x : y;
+    const v = (h&15) < 4 ? y : (h&15)===12 || (h&15)===14 ? x : z;
+    return ((h&1)?-u:u) + ((h&2)?-v:v);
+  };
+  window.perlin3 = function(x,y,z){
+    let X = Math.floor(x)&255, Y=Math.floor(y)&255, Z=Math.floor(z)&255;
+    x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+    const u=fade(x), v=fade(y), w=fade(z);
+    const A=perm[X]+Y,  AA=perm[A]+Z,  AB=perm[A+1]+Z;
+    const B=perm[X+1]+Y,BA=perm[B]+Z,  BB=perm[B+1]+Z;
+    return lerp(w,
+      lerp(v,
+        lerp(u, grad(perm[AA],   x,   y,   z),
+                 grad(perm[BA],   x-1, y,   z)),
+        lerp(u, grad(perm[AB],   x,   y-1, z),
+                 grad(perm[BB],   x-1, y-1, z))
+      ),
+      lerp(v,
+        lerp(u, grad(perm[AA+1], x,   y,   z-1),
+                 grad(perm[BA+1], x-1, y,   z-1)),
+        lerp(u, grad(perm[AB+1], x,   y-1, z-1),
+                 grad(perm[BB+1], x-1, y-1, z-1))
+      )
+    );
+  };
+})();
+
+// --- Wave (white wireframe) -------------------------------------------------
+(function(){
+  // knobs
+  const GRID_SIZE = 220;
+  const SEGMENTS  = 60;
+  const AMP       = 8.0;
+  const FREQ      = 0.05;
+  let   FLOW      = 0.05;  // speed
+
+  const canvas  = document.getElementById('waveCanvas');
+  if (!canvas) return;
+  const wrapper = canvas.parentElement;
+
+  const scene    = new THREE.Scene();
+  const camera   = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ antialias:true, canvas, alpha:true });
+  renderer.setClearColor(0x000000, 0); // transparent section bg
+
+  const geom = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE, SEGMENTS, SEGMENTS);
+  geom.rotateX(-Math.PI/2);
+  const mat  = new THREE.MeshBasicMaterial({ color: 0x60a5fa, wireframe: true }); // <- white
+  const mesh = new THREE.Mesh(geom, mat);
+  scene.add(mesh);
+
+  const pos  = geom.attributes.position;
+  const base = pos.array.slice();
+
+  camera.position.set(-34, 22, 48);
+  camera.lookAt(0, 0, 0);
+
+  // responsive sizing
+  function resize(){
+    const w = wrapper.clientWidth  || window.innerWidth;
+    const h = wrapper.clientHeight || 400;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  resize();
+  addEventListener('resize', resize);
+  new ResizeObserver(resize).observe(wrapper);
+
+  // pause when offscreen
+  let running = true;
+  new IntersectionObserver((e)=>{ running = e[0]?.isIntersecting ?? true; }, { threshold:0 })
+    .observe(wrapper);
+
+  function animate(t){
+    if (running){
+      const u = t*0.0001*FLOW*50;
+      const v = t*0.0001*FLOW*35;
+      for (let i=0;i<pos.count;i++){
+        const ix=i*3;
+        const x0=base[ix+0], z0=base[ix+2];
+        const n1 = perlin3(x0*FREQ + u, 0, z0*FREQ + v);
+        const n2 = perlin3(x0*(FREQ*0.45) - u*0.6, 0, z0*(FREQ*0.45) + v*0.6);
+        pos.array[ix+1] = (0.7*n1 + 0.3*n2) * AMP;
+      }
+      pos.needsUpdate = true;
+      renderer.render(scene, camera);
+    }
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+})();
+</script>
+
 
 </body>
 </html>
