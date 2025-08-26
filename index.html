@@ -384,7 +384,7 @@
   </section>
 
   <!-- ABOUT -->
-  <section id="about" class="py-20 bg-black">
+  <section id="about" class="py-20 bg-transparent">
     <div class="max-w-5xl mx-auto px-6 text-center">
       <h3 class="text-3xl font-semibold text-cyan-400">How It Works</h3>
       <p class="mt-4 text-gray-400 max-w-2xl mx-auto">We translate plain-language requests into precise data pulls, process them, and deliver clean outputs (CSV, GeoTIFF, plots).</p>
@@ -434,8 +434,8 @@
   </section>
 
   <!-- WIREFRAME WATER (embeds above footer) -->
-  <section class="bg-black pt-0 pb-0 -mt-8 md:-mt-12">
-    <div class="relative w-full h-[42vh] md:h-[52vh]">
+  <section class="bg-black pt-20 pb-0 -mt-8 md:-mt-12">
+    <div class="relative w-full h-[80vh] md:h-[60vh]">
       <canvas id="waveCanvas" class="absolute inset-0 w-full h-full block"></canvas>
     </div>
   </section>
@@ -881,15 +881,73 @@ window.addEventListener('DOMContentLoaded', () => {
   mesh.scale.set(3.2, 3.2, 3.2); // zoom in on X/Z; try 1.6–2.2
   scene.add(mesh);
 
+  const HALF  = GRID_SIZE * 0.5;
+  const focus = new THREE.Vector3(-HALF, -8, HALF);        // lower target -> looks down a bit
+  const camDir = new THREE.Vector3(-1, 0.5, 1).normalize(); // higher camera (y=0.9)
+  let   camDist = 90;
+
+  function placeCam() {
+    camera.position.copy(focus).add(camDir.clone().multiplyScalar(camDist));
+    camera.lookAt(focus);
+  }
+  placeCam();
+
+  // === ORBIT ADD-ON (put this right after scene.add(mesh); and after the camera block) ===
+  const orbitGroup = new THREE.Group();
+  scene.add(orbitGroup);
+
+  let orbitCurve, orbitLine, orbitDot;
+
+  // map a screen point (NDC) to a world point at a given distance from camera
+  function pointOnView(xN, yN, dist){
+    const v = new THREE.Vector3(xN, yN, 0.5).unproject(camera);
+    const dir = v.sub(camera.position).normalize();
+    return camera.position.clone().add(dir.multiplyScalar(dist));
+  }
+
+  function buildOrbit(){
+    // clean existing
+    if (orbitLine){
+      orbitGroup.remove(orbitLine);
+      orbitLine.geometry.dispose();
+      orbitLine.material.dispose();
+      orbitLine = null;
+    }
+
+    const camToFocus = camera.position.distanceTo(focus);
+    const dist  = camToFocus * 1.5; // how far in front of camera the arc is
+    const xEdge = 1;              // how close to left/right screen edges (0..1)
+    const yTop  = 0.7;              // vertical position near the top (0..1)
+
+    const start = pointOnView(-xEdge, yTop, dist);
+    const end   = pointOnView( xEdge, yTop, dist);
+
+    const mid = start.clone().lerp(end, 0.5);
+    const arcHeight = start.distanceTo(end) * 0.06; // bow amount
+    mid.y += arcHeight;
+
+    orbitCurve = new THREE.QuadraticBezierCurve3(start, mid, end);
+
+    const pts = orbitCurve.getPoints(160);
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.9, transparent: true, depthTest:false });
+    orbitLine = new THREE.Line(geo, mat);
+    orbitLine.renderOrder = 999;
+    orbitGroup.add(orbitLine);
+
+    if (!orbitDot){
+      const dotGeo = new THREE.SphereGeometry(1.2, 16, 16);
+      const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest:false });
+      orbitDot = new THREE.Mesh(dotGeo, dotMat);
+      orbitDot.renderOrder = 1000;
+      orbitGroup.add(orbitDot);
+    }
+  }
+  buildOrbit();
+
   const pos  = geom.attributes.position;
   const base = pos.array.slice();
 
-  const HALF  = GRID_SIZE * 0.5;
-  const focus = new THREE.Vector3(-HALF, 0, HALF); // pick the corner you want centered
-  camera.position.copy(focus).add(
-    new THREE.Vector3(-1, 0.6, 1).normalize().multiplyScalar(90) // distance & tilt
-  );
-  camera.lookAt(focus);
 
   // responsive sizing
   function resize(){
@@ -899,6 +957,7 @@ window.addEventListener('DOMContentLoaded', () => {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    buildOrbit();
   }
   resize();
   addEventListener('resize', resize);
@@ -908,7 +967,10 @@ window.addEventListener('DOMContentLoaded', () => {
   let running = true;
   new IntersectionObserver((e)=>{ running = e[0]?.isIntersecting ?? true; }, { threshold:0 })
     .observe(wrapper);
-
+  // timing for orbit
+  const clock = new THREE.Clock();
+  let orbitU = 0;              // 0..1 along the curve
+  const ORBIT_SPEED = 0.06;    // cycles per second (raise to test, e.g. 0.5)
   function animate(t){
     if (running){
       const u = t*0.0001*FLOW*50;
@@ -921,6 +983,12 @@ window.addEventListener('DOMContentLoaded', () => {
         pos.array[ix+1] = (0.7*n1 + 0.3*n2) * AMP;
       }
       pos.needsUpdate = true;
+      // move the dot along the orbit
+      if (orbitCurve && orbitDot) {
+        const dt = clock.getDelta();           // seconds since last frame
+        orbitU = (orbitU + dt * ORBIT_SPEED) % 1;
+        orbitDot.position.copy(orbitCurve.getPoint(orbitU));
+      }
       renderer.render(scene, camera);
     }
     requestAnimationFrame(animate);
