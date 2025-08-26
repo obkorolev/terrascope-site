@@ -435,7 +435,7 @@
 
   <!-- WIREFRAME WATER (embeds above footer) -->
   <section class="bg-black pt-0 pb-0 -mt-6 md:-mt-8">
-    <div class="relative w-full h-[50vh] md:h-[50vh]">
+    <div class="relative w-full h-[50vh] md:h-[60vh]">
       <canvas id="waveCanvas" class="absolute inset-0 w-full h-full block"></canvas>
     </div>
   </section>
@@ -861,7 +861,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // knobs
   const GRID_SIZE = 220;
   const SEGMENTS  = 60;
-  const AMP       = 8.0;
+  const AMP       = 6.0;
   const FREQ      = 0.05;
   let   FLOW      = 0.04;  // speed
 
@@ -870,7 +870,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const wrapper = canvas.parentElement;
 
   const scene    = new THREE.Scene();
-  const camera   = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+  const camera   = new THREE.PerspectiveCamera(60, 20, 40, 1000);
   const renderer = new THREE.WebGLRenderer({ antialias:true, canvas, alpha:true });
   renderer.setClearColor(0x000000, 0); // transparent section bg
 
