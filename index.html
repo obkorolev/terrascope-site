@@ -434,7 +434,7 @@
   </section>
 
   <!-- WIREFRAME WATER (embeds above footer) -->
-  <section class="bg-black pt-8 pb-0">
+  <section class="bg-black pt-0 pb-0 -mt-8 md:-mt-12">
     <div class="relative w-full h-[42vh] md:h-[52vh]">
       <canvas id="waveCanvas" class="absolute inset-0 w-full h-full block"></canvas>
     </div>
@@ -863,7 +863,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const SEGMENTS  = 60;
   const AMP       = 8.0;
   const FREQ      = 0.05;
-  let   FLOW      = 0.05;  // speed
+  let   FLOW      = 0.04;  // speed
 
   const canvas  = document.getElementById('waveCanvas');
   if (!canvas) return;
@@ -878,13 +878,18 @@ window.addEventListener('DOMContentLoaded', () => {
   geom.rotateX(-Math.PI/2);
   const mat  = new THREE.MeshBasicMaterial({ color: 0x60a5fa, wireframe: true }); // <- white
   const mesh = new THREE.Mesh(geom, mat);
+  mesh.scale.set(3.2, 3.2, 3.2); // zoom in on X/Z; try 1.6–2.2
   scene.add(mesh);
 
   const pos  = geom.attributes.position;
   const base = pos.array.slice();
 
-  camera.position.set(-34, 22, 48);
-  camera.lookAt(0, 0, 0);
+  const HALF  = GRID_SIZE * 0.5;
+  const focus = new THREE.Vector3(-HALF, 0, HALF); // pick the corner you want centered
+  camera.position.copy(focus).add(
+    new THREE.Vector3(-1, 0.6, 1).normalize().multiplyScalar(90) // distance & tilt
+  );
+  camera.lookAt(focus);
 
   // responsive sizing
   function resize(){
