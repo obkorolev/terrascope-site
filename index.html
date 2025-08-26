@@ -434,7 +434,7 @@
   </section>
 
   <!-- WIREFRAME WATER (embeds above footer) -->
-  <section class="bg-black pt-20 pb-0 -mt-8 md:-mt-12">
+  <section class="bg-black pt-0 pb-0 -mt-8 md:-mt-12">
     <div class="relative w-full h-[80vh] md:h-[60vh]">
       <canvas id="waveCanvas" class="absolute inset-0 w-full h-full block"></canvas>
     </div>
@@ -930,16 +930,49 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const pts = orbitCurve.getPoints(160);
     const geo = new THREE.BufferGeometry().setFromPoints(pts);
-    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.9, transparent: true, depthTest:false });
+    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.4, transparent: true, depthTest:false }); // Example with more transparency
     orbitLine = new THREE.Line(geo, mat);
     orbitLine.renderOrder = 999;
     orbitGroup.add(orbitLine);
 
+    // === REPLACEMENT CODE FOR THE DOT ===
     if (!orbitDot){
-      const dotGeo = new THREE.SphereGeometry(1.2, 16, 16);
-      const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest:false });
-      orbitDot = new THREE.Mesh(dotGeo, dotMat);
+      // 1. Load the image texture
+        const textureLoader = new THREE.TextureLoader();
+        console.log("Attempting to load texture..."); // Debug message
+
+        const orbitTexture = textureLoader.load(
+          // 1. The path to the image
+          './icons/s2.png',
+
+          // 2. onLoad callback (what to do when it succeeds)
+          function ( texture ) {
+            console.log("Texture loaded SUCCESSFULLY!", texture);
+          },
+
+          // 3. onProgress callback (not needed, but good to know)
+          undefined,
+
+          // 4. onError callback (what to do when it fails)
+          function ( err ) {
+            console.error( 'An error happened while loading the texture.', err );
+          }
+        );
+
+      // 2. Create a material for the sprite using the texture
+      const spriteMaterial = new THREE.SpriteMaterial({
+        map: orbitTexture,
+        depthTest: false,
+        transparent: true
+      });
+
+      // 3. Create the sprite object itself
+      orbitDot = new THREE.Sprite(spriteMaterial);
       orbitDot.renderOrder = 1000;
+
+      // 4. Set the size of the sprite (adjust as needed)
+      orbitDot.scale.set(4, 4, 4); 
+
       orbitGroup.add(orbitDot);
     }
   }
@@ -970,7 +1003,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // timing for orbit
   const clock = new THREE.Clock();
   let orbitU = 0;              // 0..1 along the curve
-  const ORBIT_SPEED = 0.06;    // cycles per second (raise to test, e.g. 0.5)
+  const ORBIT_SPEED = 0.02;    // cycles per second (raise to test, e.g. 0.5)
   function animate(t){
     if (running){
       const u = t*0.0001*FLOW*50;
