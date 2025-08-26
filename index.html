@@ -434,16 +434,19 @@
   </section>
 
   <!-- WIREFRAME WATER (embeds above footer) -->
-  <section class="bg-black pt-0 pb-0 -mt-6 md:-mt-8">
-    <div class="relative w-full h-[50vh] md:h-[60vh]">
-      <canvas id="waveCanvas" class="absolute inset-0 w-full h-full block"></canvas>
-    </div>
-  </section>
-
-  <!-- FOOTER -->
-  <footer class="bg-white/5 py-6 text-center text-gray-500 text-sm">
-    © 2025 OceanSat Labs. All rights reserved.
-  </footer>
+  <!-- UNIFIED FOOTER & WAVE SECTION -->
+    <section class="relative -mt-12 bg-black overflow-hidden">
+      <!-- The container for the wave now takes up the top part of the section via padding -->
+      <div class="relative w-full h-full pt-80">
+        <!-- The Canvas is positioned to fill its parent div -->
+        <canvas id="waveCanvas" class="absolute inset-0 w-full h-full block"></canvas>
+        
+        <!-- The Footer content is also inside, positioned on top of the canvas -->
+        <footer class="relative z-10 py-6 text-center text-gray-500 text-sm">
+          © 2025 OceanSat Labs. All rights reserved.
+        </footer>
+      </div>
+    </section>
 
 <!-- MAP MODAL -->
 <div id="mapModal" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
@@ -930,7 +933,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const pts = orbitCurve.getPoints(160);
     const geo = new THREE.BufferGeometry().setFromPoints(pts);
-    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.4, transparent: true, depthTest:false }); // Example with more transparency
+    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.00001, transparent: true, depthTest:false }); // Example with more transparency
     orbitLine = new THREE.Line(geo, mat);
     orbitLine.renderOrder = 999;
     orbitGroup.add(orbitLine);
