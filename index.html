@@ -910,7 +910,7 @@ window.addEventListener('DOMContentLoaded', () => {
       requestAnimationFrame(animate);
 
       // Loop a value 't' from 0.0 to 1.0
-      const t = (time * 0.00005) % 1;
+      const t = (time * 0.000035) % 1;
 
       // Get the position on the curve and apply it to the satellite
       const positionOnCurve = curve.getPointAt(t);
