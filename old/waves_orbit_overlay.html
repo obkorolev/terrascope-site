@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Waves + SVG Orbit (robust)</title>
+  <style>
+    html,body{margin:0;height:100%;background:#000;overflow:hidden}
+    #app{position:fixed;inset:0}
+    /* SVG overlay always on top of WebGL, ignores pointer events */
+    #orbitOverlay{position:fixed;inset:0;pointer-events:none;z-index:10}
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <!-- Orbit overlay -->
+  <svg id="orbitOverlay" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <path id="orbitPath" d="" stroke="#ffd54f" stroke-width="0.6" fill="none" opacity="0.95"/>
+    <circle id="satDot" cx="0" cy="0" r="1.4" fill="#ffd54f"/>
+  </svg>
+
+  <script src="https://unpkg.com/three@0.159.0/build/three.min.js"></script>
+  <script>
+  // ---------- simple, reliable waves ----------
+  const app=document.getElementById('app');
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
+  camera.position.set(-34, 20, 48);
+  camera.lookAt(0,0,0);
+  camera.rotation.z = THREE.MathUtils.degToRad(-6);
+
+  const renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setClearColor(0x000000,1);
+  app.appendChild(renderer.domElement);
+
+  // grid
+  const GRID=200, SEG=70;
+  const geom=new THREE.PlaneGeometry(GRID, GRID, SEG, SEG);
+  geom.rotateX(-Math.PI/2);
+  const mat=new THREE.MeshBasicMaterial({color:0xffffff, wireframe:true});
+  const mesh=new THREE.Mesh(geom, mat);
+  mesh.position.y = -6;
+  scene.add(mesh);
+  const pos=geom.attributes.position;
+  const base=pos.array.slice();
+
+  function animate(t){
+    // sine-based displacement (fast + safe)
+    for(let i=0;i<pos.count;i++){
+      const ix=i*3, x0=base[ix], z0=base[ix+2];
+      pos.array[ix+1] =
+        Math.sin(0.18*x0 + 0.0022*t)*2.6 +
+        Math.cos(0.22*z0 - 0.0027*t)*2.0 +
+        Math.sin(0.08*(x0+z0) + 0.0012*t)*1.2;
+    }
+    pos.needsUpdate = true;
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+
+  // ---------- SVG orbit glued to screen ----------
+  const svg = document.getElementById('orbitOverlay');
+  const path = document.getElementById('orbitPath');
+  const dot  = document.getElementById('satDot');
+  let length = 0, progress = 0;
+
+  function buildOrbit(){
+    // Use a normalized 0..100 coordinate space (viewBox above)
+    const w = 100, h = 100;
+    const marginX = 3;        // left/right margin (% of width)
+    const yTop = 34;          // arc vertical position (0..100, top-ish)
+    const x1 = marginX, y1 = yTop;
+    const x2 = 100 - marginX, y2 = yTop;
+    const cx = 50, cy = Math.max(6, yTop - 18); // pull the arc upward
+    const d = `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+    path.setAttribute('d', d);
+    length = path.getTotalLength();
+    progress = 0;
+  }
+  buildOrbit();
+
+  function animateOrbit(){
+    progress = (progress + 0.4) % length; // speed
+    const pt = path.getPointAtLength(progress);
+    dot.setAttribute('cx', pt.x);
+    dot.setAttribute('cy', pt.y);
+    requestAnimationFrame(animateOrbit);
+  }
+  requestAnimationFrame(animateOrbit);
+
+  // keep both renderers sized right
+  addEventListener('resize', ()=>{
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+    buildOrbit();
+  });
+  </script>
+</body>
+</html>

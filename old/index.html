@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TerraScope — Satellite Data On Demand</title>
+  <title>OceanSat Labs — Data Delivery</title>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -42,6 +42,7 @@
     @media (prefers-reduced-motion: reduce){
       .hero-accent{ animation: none; }
     }
+    .flatpickr-alt { width: 100% !important; min-width: 0 !important; }
 
     /* Map containers */
     #leafletMapSheet { height:100%; min-height:320px; }
@@ -68,6 +69,9 @@
         radial-gradient(90% 70% at 20% 10%, rgba(160,220,255,.18), transparent 60%),
         radial-gradient(100% 80% at 85% 35%, rgba(200,160,255,.16), transparent 60%);
       animation:driftA 60s ease-in-out infinite;
+    }
+    #message::placeholder {
+    color: #ffffff91; /* light cyan */
     }
     .cinema::after{
       background:conic-gradient(from 0deg at 60% 15%, rgba(120,200,255,.10),
@@ -161,19 +165,19 @@
 </head>
 <body class="bg-black text-white">
 
-  <!-- NAVBAR (non-fixed) -->
-  <header class="relative w-full bg-transparent">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-      <a href="#hero" class="flex items-center gap-3">
-        <img src="./earthlabs.png" alt="TerraScope logo" class="h-8 md:h-9 w-auto object-contain" />
-      </a>
-      <nav class="space-x-8 text-sm">
-        <a href="#about" class="hover:text-cyan-400 transition">About</a>
-        <a href="#request" class="hover:text-cyan-400 transition">Request Data</a>
-      </nav>
-    </div>
-    <div class="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/50 to-transparent"></div>
-  </header>
+ <!-- NAVBAR (non-fixed) -->
+<header class="relative w-full bg-transparent">
+  <div class="relative z-10 max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="#hero" class="flex items-center gap-3">
+      <img src="./earthlabs.png" alt="ODL logo" class="h-[48px] sm:h-[56px] md:h-[70px] w-auto object-contain" />
+    </a>
+    <nav class="space-x-8 text-sm">
+      <a href="#about" class="hover:text-cyan-400 transition">How it works</a>
+    </nav>
+  </div>
+
+  <div class="absolute inset-0 z-0 pointer-events-none bg-gradient-to-b from-black/50 to-transparent"></div>
+</header>
 
   <!-- HERO -->
   <section class="hero" id="hero">
@@ -204,20 +208,20 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label for="name" class="block text-white-300 mb-1 text-sm">Your Name</label>
+              <label for="name" class="block text-white-300 mb-1 text-sm">Your name or alias</label>
               <input id="name" name="name" required class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
             </div>
             <div>
-              <label for="email" class="block text-white-300 mb-1 text-sm">Email Address</label>
+              <label for="email" class="block text-white-300 mb-1 text-sm">Email address</label>
               <input id="email" type="email" name="_replyto" required class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
             </div>
           </div>
 
           <div>
-            <label for="message" class="block text-white-300 mb-1 text-sm">Describe the Data You Need</label>
+            <label for="message" class="block text-white-300 mb-1 text-sm">Describe the data you need</label>
             <textarea id="message" name="message" rows="2" required
                       class="w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                      placeholder="Please be as specific as possible. Include the variable, desired format (e.g., CSV, GeoTIFF), and any other constraints."></textarea>
+                      placeholder="Please be specific — include variable (e.g. Sea Surface Temperature), time range, area/coords, desired format (CSV, GeoTIFF, etc.), and any processing (e.g. monthly average, maps, trends etc.)."></textarea>
           </div>
 
           <!-- Date and Area Section -->
@@ -225,7 +229,7 @@
               <!-- Date Pickers -->
               <div>
                   <label class="block text-white-300 mb-1 text-sm">Time Range</label>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div class="flex flex-col md:flex-row gap-3">
                       <input id="start_date" name="start_date" type="text" placeholder="Start Date" required
                             class="min-w-0 w-full rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/>
                       <input id="end_date" name="end_date" type="text" placeholder="End Date" required
@@ -316,14 +320,14 @@
           <div class="mt-4 grid grid-cols-1 sm:grid-cols-[auto,1fr] items-center gap-4">
             <div class="justify-self-center sm:justify-self-start">
               <div id="urgencySelect" class="urg urg-standard relative inline-block flex-shrink-0">
-                <input type="hidden" name="urgency" id="urgVal" value="Standard (2–3 days)"/>
+                <input type="hidden" name="urgency" id="urgVal" value="Standard (~7 days)"/>
                 <button type="button" class="urg-btn inline-flex items-center gap-2 rounded-xl px-4 py-2 font-medium cursor-pointer shadow hover:opacity-95 transition">
-                  <span class="urg-label">Standard (2–3 days)</span>
+                  <span class="urg-label">Standard (~7 days)</span>
                   <svg class="urg-caret w-4 h-4 transition-transform" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
                 </button>
                 <ul id="urgMenu" class="urg-menu absolute left-0 mt-2 w-56 rounded-xl p-1 shadow-xl hidden">
                   <li class="urg-opt asap rounded-lg px-3 py-2 text-sm cursor-pointer" data-value="ASAP">ASAP</li>
-                  <li class="urg-opt standard rounded-lg px-3 py-2 text-sm cursor-pointer" data-value="Standard (2–3 days)">Standard (2–3 days)</li>
+                  <li class="urg-opt standard rounded-lg px-3 py-2 text-sm cursor-pointer" data-value="Standard (~7 days)">Standard (~7 days)</li>
                   <li class="urg-opt norush rounded-lg px-3 py-2 text-sm cursor-pointer" data-value="No rush">No rush</li>
                 </ul>
               </div>
@@ -335,7 +339,7 @@
                 <div id="urgHelp" class="urg-help mt-2 rounded-lg border border-white/10 bg-white/5 p-3">
                   <ul class="list-disc list-inside space-y-1">
                     <li><span class="font-semibold">ASAP</span>: time-critical or event-driven requests. We’ll prioritize this first.</li>
-                    <li><span class="font-semibold">Standard (2–3 days)</span>: default path; typical turnaround for most requests.</li>
+                    <li><span class="font-semibold">Standard (~7 days)</span>: default path; typical turnaround for most requests.</li>
                     <li><span class="font-semibold">No rush</span>: flexible delivery window; we’ll batch with other jobs.</li>
                   </ul>
                 </div>
@@ -371,15 +375,16 @@
   <!-- LOGO STRIP -->
   <section class="bg-black py-8">
     <p class="text-center text-gray-400 text-xs md:text-sm tracking-wider mb-5">Data Sources & Technology We Use</p>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 w-full">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 w-full">
       <div class="flex items-center justify-center h-16 md:h-20"><img src="./logos/google.png" alt="Google" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy"></div>
+      <div class="flex items-center justify-center h-16 md:h-20"><img src="./logos/nasa.png" alt="Nasa" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy"></div>
       <div class="flex items-center justify-center h-16 md:h-20"><img src="./logos/copernicus.png" alt="Copernicus" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy"></div>
       <div class="flex items-center justify-center h-16 md:h-20"><img src="./logos/esa.png" alt="ESA" class="max-h-12 md:max-h-14 w-auto object-contain opacity-90" loading="lazy"></div>
     </div>
   </section>
 
   <!-- ABOUT -->
-  <section id="about" class="py-20 bg-black">
+  <section id="about" class="py-20 bg-transparent">
     <div class="max-w-5xl mx-auto px-6 text-center">
       <h3 class="text-3xl font-semibold text-cyan-400">How It Works</h3>
       <p class="mt-4 text-gray-400 max-w-2xl mx-auto">We translate plain-language requests into precise data pulls, process them, and deliver clean outputs (CSV, GeoTIFF, plots).</p>
@@ -428,10 +433,23 @@
     </div>
   </section>
 
-  <!-- FOOTER -->
-  <footer class="bg-white/5 py-6 text-center text-gray-500 text-sm">
-    © 2025 TerraScope. All rights reserved.
-  </footer>
+<!-- UNIFIED FOOTER & WAVE SECTION (Fully Responsive) -->
+  <section class="relative h-[70vh] -mt-24 overflow-hidden"> <!-- 1. The "Stage" is now 70% of the viewport height -->
+
+    <!-- 2. The Canvas Wrapper sits at the bottom, taking up a proportional height -->
+    <div class="absolute bottom-0 left-0 right-0 h-[50vh]">
+      <!-- Canvas fills the wrapper, which is now also responsive -->
+      <canvas id="waveCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+    </div>
+
+    <!-- Footer Content (no changes needed here) -->
+    <footer class="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black via-black/60 to-transparent pt-32 pb-8 text-center text-gray-400 text-sm">
+      <span class="inline-block px-6 py-3 bg-black/30 backdrop-blur-md border border-white/10 rounded-full">
+        © 2025 OceanSat Labs. All rights reserved.
+      </span>
+    </footer>
+
+  </section>
 
 <!-- MAP MODAL -->
 <div id="mapModal" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
@@ -537,7 +555,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const fpStart = flatpickr(startDateEl, {
       altInput: true,
       altInputClass:
-        'flatpickr-alt w-full max-w-xs sm:max-w-none mx-auto rounded-xl px-3 py-2 ' +
+        'flatpickr-alt w-full rounded-xl px-3 py-2 ' +
         'bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
       altFormat: 'M j, Y',
       dateFormat: 'Y-m-d',
@@ -546,12 +564,50 @@ window.addEventListener('DOMContentLoaded', () => {
     const fpEnd = flatpickr(endDateEl, {
       altInput: true,
       altInputClass:
-        'flatpickr-alt w-full max-w-xs sm:max-w-none mx-auto rounded-xl px-3 py-2 ' +
+        'flatpickr-alt w-full rounded-xl px-3 py-2 ' +
         'bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
       altFormat: 'M j, Y',
       dateFormat: 'Y-m-d'
     });
-  }
+    }
+
+    function initDatePickers() {
+    const startEl = document.querySelector('#start_date');
+    const endEl   = document.querySelector('#end_date');
+    if (!startEl || !endEl) return;
+
+    // Avoid double-binding if user reopens the panel
+    if (!startEl._flatpickr) {
+        window.fpStart = flatpickr(startEl, {
+        altInput: true,
+        altInputClass: 'flatpickr-alt min-w-0 w-full md:flex-1 rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
+        altFormat: 'M j, Y',
+        dateFormat: 'Y-m-d',
+        onChange(selected){ if (selected[0]) fpEnd.set('minDate', selected[0]); }
+        });
+    }
+
+    if (!endEl._flatpickr) {
+        window.fpEnd = flatpickr(endEl, {
+        altInput: true,
+        altInputClass: 'flatpickr-alt min-w-0 w-full md:flex-1 rounded-xl px-3 py-2 bg-white/5 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 placeholder-gray-300',
+        altFormat: 'M j, Y',
+        dateFormat: 'Y-m-d'
+        });
+    }
+    }
+
+    // Run after DOM is ready
+    document.addEventListener('DOMContentLoaded', initDatePickers);
+
+    // If the “Honeypot” section is revealed/inserted later, init again on open.
+    // Adjust selectors to whatever toggles your section.
+    document.querySelector('#Honeypot')?.addEventListener('toggle', initDatePickers);
+    document.querySelector('[data-open-honeypot]')?.addEventListener('click', () => {
+    // Wait for DOM to render the moved nodes
+    setTimeout(initDatePickers, 0);
+    });
+
   
   // ===== AREA PICKER (MODAL & STATE LOGIC) =====
   // --- Elements
@@ -765,6 +821,238 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+<!-- Three.js (remove this line if you already load it elsewhere) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+// --- Perlin noise 3D (coherent) --------------------------------------------
+(function initPerlin(){
+  const p = new Uint8Array(256);
+  for (let i=0;i<256;i++) p[i]=i;
+  for (let i=255;i>0;i--) { const j=(Math.random()*(i+1))|0; const t=p[i]; p[i]=p[j]; p[j]=t; }
+  const perm = new Uint8Array(512);
+  for (let i=0;i<512;i++) perm[i]=p[i&255];
+  const fade = t => t*t*t*(t*(t*6-15)+10);
+  const lerp = (t,a,b) => a + t*(b-a);
+  const grad = (h,x,y,z) => {
+    const u = (h&15) < 8 ? x : y;
+    const v = (h&15) < 4 ? y : (h&15)===12 || (h&15)===14 ? x : z;
+    return ((h&1)?-u:u) + ((h&2)?-v:v);
+  };
+  window.perlin3 = function(x,y,z){
+    let X = Math.floor(x)&255, Y=Math.floor(y)&255, Z=Math.floor(z)&255;
+    x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+    const u=fade(x), v=fade(y), w=fade(z);
+    const A=perm[X]+Y,  AA=perm[A]+Z,  AB=perm[A+1]+Z;
+    const B=perm[X+1]+Y,BA=perm[B]+Z,  BB=perm[B+1]+Z;
+    return lerp(w,
+      lerp(v,
+        lerp(u, grad(perm[AA],   x,   y,   z),
+                 grad(perm[BA],   x-1, y,   z)),
+        lerp(u, grad(perm[AB],   x,   y-1, z),
+                 grad(perm[BB],   x-1, y-1, z))
+      ),
+      lerp(v,
+        lerp(u, grad(perm[AA+1], x,   y,   z-1),
+                 grad(perm[BA+1], x-1, y,   z-1)),
+        lerp(u, grad(perm[AB+1], x,   y-1, z-1),
+                 grad(perm[BB+1], x-1, y-1, z-1))
+      )
+    );
+  };
+})();
+
+// --- Wave (white wireframe) -------------------------------------------------
+(function(){
+  // knobs
+  const GRID_SIZE = 220;
+  const SEGMENTS  = 60;
+  const AMP       = 6.0;
+  const FREQ      = 0.05;
+  let   FLOW      = 0.04;  // speed
+
+  const canvas  = document.getElementById('waveCanvas');
+  if (!canvas) return;
+  const wrapper = canvas.parentElement;
+
+  const scene    = new THREE.Scene();
+  const camera   = new THREE.PerspectiveCamera(60, 20, 40, 1000);
+  const renderer = new THREE.WebGLRenderer({ antialias:true, canvas, alpha:true });
+  renderer.setClearColor(0x000000, 0); // transparent section bg
+
+  const geom = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE, SEGMENTS, SEGMENTS);
+  geom.rotateX(-Math.PI/2);
+  const mat  = new THREE.MeshBasicMaterial({ color: 0x60a5fa, wireframe: true }); // <- white
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.scale.set(3.2, 3.2, 3.2); // zoom in on X/Z; try 1.6–2.2
+  scene.add(mesh);
+
+  const HALF  = GRID_SIZE * 0.5;
+  const focus = new THREE.Vector3(-HALF, -8, HALF);        // lower target -> looks down a bit
+  const camDir = new THREE.Vector3(-1, 0.5, 1).normalize(); // higher camera (y=0.9)
+  let   camDist = 90;
+
+  function placeCam() {
+    camera.position.copy(focus).add(camDir.clone().multiplyScalar(camDist));
+    camera.lookAt(focus);
+  }
+  placeCam();
+
+  // === ORBIT ADD-ON (put this right after scene.add(mesh); and after the camera block) ===
+  const orbitGroup = new THREE.Group();
+  scene.add(orbitGroup);
+
+  let orbitCurve, orbitLine, orbitDot;
+
+  // map a screen point (NDC) to a world point at a given distance from camera
+  function pointOnView(xN, yN, dist){
+    const v = new THREE.Vector3(xN, yN, 0.5).unproject(camera);
+    const dir = v.sub(camera.position).normalize();
+    return camera.position.clone().add(dir.multiplyScalar(dist));
+  }
+
+  function buildOrbit(){
+    // clean existing
+    if (orbitLine){
+      orbitGroup.remove(orbitLine);
+      orbitLine.geometry.dispose();
+      orbitLine.material.dispose();
+      orbitLine = null;
+    }
+
+    const camToFocus = camera.position.distanceTo(focus);
+    const dist  = camToFocus * 1.5; // how far in front of camera the arc is
+    const xEdge = 1;              // how close to left/right screen edges (0..1)
+    const yTop  = 0.7;              // vertical position near the top (0..1)
+
+    const start = pointOnView(-xEdge, yTop, dist);
+    const end   = pointOnView( xEdge, yTop, dist);
+
+    const mid = start.clone().lerp(end, 0.5);
+    const arcHeight = start.distanceTo(end) * 0.06; // bow amount
+    mid.y += arcHeight;
+
+    orbitCurve = new THREE.QuadraticBezierCurve3(start, mid, end);
+
+    const pts = orbitCurve.getPoints(160);
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.00001, transparent: true, depthTest:false }); // Example with more transparency
+    orbitLine = new THREE.Line(geo, mat);
+    orbitLine.renderOrder = 999;
+    orbitGroup.add(orbitLine);
+
+    // === REPLACEMENT CODE FOR THE DOT ===
+    if (!orbitDot){
+      // 1. Load the image texture
+        const textureLoader = new THREE.TextureLoader();
+        console.log("Attempting to load texture..."); // Debug message
+
+        const orbitTexture = textureLoader.load(
+          // 1. The path to the image
+          './icons/s2.png',
+
+          // 2. onLoad callback (what to do when it succeeds)
+          function ( texture ) {
+            console.log("Texture loaded SUCCESSFULLY!", texture);
+          },
+
+          // 3. onProgress callback (not needed, but good to know)
+          undefined,
+
+          // 4. onError callback (what to do when it fails)
+          function ( err ) {
+            console.error( 'An error happened while loading the texture.', err );
+          }
+        );
+
+      // 2. Create a material for the sprite using the texture
+      const spriteMaterial = new THREE.SpriteMaterial({
+        map: orbitTexture,
+        depthTest: false,
+        transparent: true
+      });
+
+      // 3. Create the sprite object itself
+      orbitDot = new THREE.Sprite(spriteMaterial);
+      orbitDot.renderOrder = 1000;
+
+      // 4. Set the size of the sprite (adjust as needed)
+      orbitDot.scale.set(4, 4, 4); 
+
+      orbitGroup.add(orbitDot);
+    }
+  }
+  buildOrbit();
+
+  const pos  = geom.attributes.position;
+  const base = pos.array.slice();
+
+
+  // responsive sizing
+// responsive sizing
+    function resize(){
+      const w = wrapper.clientWidth  || window.innerWidth;
+      const h = wrapper.clientHeight || 400;
+      const aspect = w / h;
+
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h, false);
+      
+      camera.aspect = aspect;
+
+      // --- DYNAMIC FOV LOGIC ---
+      // This is the key fix. It zooms the camera in on wider screens.
+      const baseFov = 75; // The FOV for a standard screen
+      
+      if (aspect > 1.8) { // If the screen is wider than 1.8:1...
+        // Decrease the FOV to counteract the horizontal stretching
+        camera.fov = baseFov / (aspect / 1.8);
+      } else {
+        camera.fov = baseFov;
+      }
+      // --- END DYNAMIC FOV ---
+      
+      camera.updateProjectionMatrix();
+      buildOrbit();
+    }
+  resize();
+  addEventListener('resize', resize);
+  new ResizeObserver(resize).observe(wrapper);
+
+  // pause when offscreen
+  let running = true;
+  new IntersectionObserver((e)=>{ running = e[0]?.isIntersecting ?? true; }, { threshold:0 })
+    .observe(wrapper);
+  // timing for orbit
+  const clock = new THREE.Clock();
+  let orbitU = 0;              // 0..1 along the curve
+  const ORBIT_SPEED = 0.02;    // cycles per second (raise to test, e.g. 0.5)
+  function animate(t){
+    if (running){
+      const u = t*0.0001*FLOW*50;
+      const v = t*0.0001*FLOW*35;
+      for (let i=0;i<pos.count;i++){
+        const ix=i*3;
+        const x0=base[ix+0], z0=base[ix+2];
+        const n1 = perlin3(x0*FREQ + u, 0, z0*FREQ + v);
+        const n2 = perlin3(x0*(FREQ*0.45) - u*0.6, 0, z0*(FREQ*0.45) + v*0.6);
+        pos.array[ix+1] = (0.7*n1 + 0.3*n2) * AMP;
+      }
+      pos.needsUpdate = true;
+      // move the dot along the orbit
+      if (orbitCurve && orbitDot) {
+        const dt = clock.getDelta();           // seconds since last frame
+        orbitU = (orbitU + dt * ORBIT_SPEED) % 1;
+        orbitDot.position.copy(orbitCurve.getPoint(orbitU));
+      }
+      renderer.render(scene, camera);
+    }
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+})();
+</script>
+
 
 </body>
 </html>

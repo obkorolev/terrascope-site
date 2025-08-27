@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Combined Waves + Orbit</title>
+  <style>
+    html,body { margin:0; height:100%; background:#000; overflow:hidden; }
+    #app { position:fixed; inset:0; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+  // -------- Perlin noise 3D (tiny impl) ----
+  (function initPerlin(){
+    const p = new Uint8Array(256);
+    for (let i=0;i<256;i++) p[i]=i;
+    for (let i=255;i>0;i--) { const j=(Math.random()*(i+1))|0; const t=p[i]; p[i]=p[j]; p[j]=t; }
+    const perm = new Uint8Array(512);
+    for (let i=0;i<512;i++) perm[i]=p[i&255];
+    const fade = t => t*t*t*(t*(t*6-15)+10);
+    const lerp = (t,a,b) => a + t*(b-a);
+    const grad = (h,x,y,z) => {
+      const u = (h&15) < 8 ? x : y;
+      const v = (h&15) < 4 ? y : (h&15)===12 || (h&15)===14 ? x : z;
+      return ((h&1)?-u:u) + ((h&2)?-v:v);
+    };
+    window.perlin3 = function(x,y,z){
+      let X = Math.floor(x)&255, Y=Math.floor(y)&255, Z=Math.floor(z)&255;
+      x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+      const u=fade(x), v=fade(y), w=fade(z);
+      const A=perm[X]+Y,  AA=perm[A]+Z,  AB=perm[A+1]+Z;
+      const B=perm[X+1]+Y,BA=perm[B]+Z,  BB=perm[B+1]+Z;
+      return lerp(w,
+        lerp(v,
+          lerp(u, grad(perm[AA],   x,   y,   z),
+                   grad(perm[BA],   x-1, y,   z)),
+          lerp(u, grad(perm[AB],   x,   y-1, z),
+                   grad(perm[BB],   x-1, y-1, z))
+        ),
+        lerp(v,
+          lerp(u, grad(perm[AA+1], x,   y,   z-1),
+                   grad(perm[BA+1], x-1, y,   z-1)),
+          lerp(u, grad(perm[AB+1], x,   y-1, z-1),
+                   grad(perm[BB+1], x-1, y-1, z-1))
+        )
+      );
+    };
+  })();
+
+  // --- Combined Wave and Orbit Script ---
+  (function(){
+    // -------- Knobs ----------------
+    // Wave knobs
+    const GRID_SIZE = 220;
+    const SEGMENTS  = 60;
+    const AMP       = 6.0;
+    const FREQ      = 0.05;
+    const FLOW      = 0.04;
+    const LINE_COLOR= 0x60a5fa;
+
+    const canvasContainer  = document.getElementById('app');
+    if (!canvasContainer) return;
+
+    // -------- Scene Setup ----------------
+    const scene    = new THREE.Scene();
+    const camera   = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 4000);
+    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setClearColor(0x000000, 1);
+    canvasContainer.appendChild(renderer.domElement);
+
+    const HALF  = GRID_SIZE * 0.5;
+    const focus = new THREE.Vector3(-HALF, -8, HALF);
+    const camDir = new THREE.Vector3(-1, 0.5, 1).normalize();
+    let   camDist = 90;
+
+    function placeCam() {
+      camera.position.copy(focus).add(camDir.clone().multiplyScalar(camDist));
+      camera.lookAt(focus);
+    }
+    placeCam();
+
+    // -------- Waves ------------------------
+    const geom = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE, SEGMENTS, SEGMENTS);
+    geom.rotateX(-Math.PI/2);
+    const mat  = new THREE.MeshBasicMaterial({ color: LINE_COLOR, wireframe:true });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.scale.set(3.2, 3.2, 3.2);
+    scene.add(mesh);
+
+    const pos  = geom.attributes.position;
+    const base = pos.array.slice();
+
+    // -------- SUPER SIMPLE ORBIT -------
+    // Just a big red ball that moves in a circle above the waves
+    const orbitDot = new THREE.Mesh(
+      new THREE.SphereGeometry(5, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0xff0000 })
+    );
+    scene.add(orbitDot);
+
+    // -------- Resize Handler -------------
+    function resize(){
+      const w = innerWidth;
+      const h = innerHeight;
+      const aspect = w / h;
+
+      renderer.setSize(w, h, false);
+      camera.aspect = aspect;
+
+      const baseFov = 75;
+      if (aspect > 1.8) { camera.fov = baseFov / (aspect / 1.8); }
+      else { camera.fov = baseFov; }
+
+      camera.updateProjectionMatrix();
+    }
+    addEventListener('resize', resize);
+
+    // -------- Animate -----------------------
+    function animate(t){
+      // Animate waves
+      const u = t * 0.0001 * FLOW * 50;
+      const v = t * 0.0001 * FLOW * 35;
+      for (let i=0; i < pos.count; i++){
+        const ix = i * 3;
+        const x0 = base[ix];
+        const z0 = base[ix+2];
+        // THE ONLY CHANGE IS HERE TO REVERSE THE WAVE FLOW
+        const n1 = perlin3(x0 * FREQ - u, 0, z0 * FREQ - v);
+        const n2 = perlin3(x0 * (FREQ * 0.45) + u * 0.6, 0, z0 * (FREQ * 0.45) - v * 0.6);
+        pos.array[ix+1] = (0.7 * n1 + 0.3 * n2) * AMP;
+      }
+      pos.needsUpdate = true;
+
+      // Move the red ball continuously from left to right (behind screen to off screen)
+      const time = t * 0.000002;
+      const progress = (time % 1); // 0 to 1 continuously, then restart
+      orbitDot.position.x = (progress * 10000) - 200; // -150 to +150 linearly
+      orbitDot.position.y = 45;
+      orbitDot.position.z = 0;
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+
+  })();
+  </script>
+</body>
+</html>

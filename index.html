@@ -433,15 +433,20 @@
     </div>
   </section>
 
-<!-- UNIFIED FOOTER & WAVE SECTION -->
-  <section class="relative h-[450px] -mt-30"> <!-- 1. Adjusted position -->
-    
-    <!-- Wave Canvas (acts as the background) -->
-    <canvas id="waveCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
 
-    <!-- Footer Content (acts as the foreground overlay) -->
+
+
+<!-- UNIFIED FOOTER & WAVE SECTION (Fully Responsive) -->
+  <section class="relative h-[50vh] -mt-24 overflow-hidden"> <!-- 1. The "Stage" is now 70% of the viewport height -->
+
+    <!-- 2. The Canvas Wrapper sits at the bottom, taking up a proportional height -->
+    <div class="absolute bottom-0 left-0 right-0 h-[50vh]">
+      <!-- Canvas fills the wrapper, which is now also responsive -->
+      <canvas id="waveCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+    </div>
+
+    <!-- Footer Content (no changes needed here) -->
     <footer class="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black via-black/60 to-transparent pt-32 pb-8 text-center text-gray-400 text-sm">
-      <!-- 2. Rounded Rectangle Wrapper -->
       <span class="inline-block px-6 py-3 bg-black/30 backdrop-blur-md border border-white/10 rounded-full">
         © 2025 OceanSat Labs. All rights reserved.
       </span>
@@ -819,238 +824,301 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
-<!-- Three.js (remove this line if you already load it elsewhere) -->
+<!-- Three.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
+<!-- ORBITER SCRIPT - FINAL -->
 <script>
-// --- Perlin noise 3D (coherent) --------------------------------------------
-(function initPerlin(){
-  const p = new Uint8Array(256);
-  for (let i=0;i<256;i++) p[i]=i;
-  for (let i=255;i>0;i--) { const j=(Math.random()*(i+1))|0; const t=p[i]; p[i]=p[j]; p[j]=t; }
-  const perm = new Uint8Array(512);
-  for (let i=0;i<512;i++) perm[i]=p[i&255];
-  const fade = t => t*t*t*(t*(t*6-15)+10);
-  const lerp = (t,a,b) => a + t*(b-a);
-  const grad = (h,x,y,z) => {
-    const u = (h&15) < 8 ? x : y;
-    const v = (h&15) < 4 ? y : (h&15)===12 || (h&15)===14 ? x : z;
-    return ((h&1)?-u:u) + ((h&2)?-v:v);
-  };
-  window.perlin3 = function(x,y,z){
-    let X = Math.floor(x)&255, Y=Math.floor(y)&255, Z=Math.floor(z)&255;
-    x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
-    const u=fade(x), v=fade(y), w=fade(z);
-    const A=perm[X]+Y,  AA=perm[A]+Z,  AB=perm[A+1]+Z;
-    const B=perm[X+1]+Y,BA=perm[B]+Z,  BB=perm[B+1]+Z;
-    return lerp(w,
-      lerp(v,
-        lerp(u, grad(perm[AA],   x,   y,   z),
-                 grad(perm[BA],   x-1, y,   z)),
-        lerp(u, grad(perm[AB],   x,   y-1, z),
-                 grad(perm[BB],   x-1, y-1, z))
-      ),
-      lerp(v,
-        lerp(u, grad(perm[AA+1], x,   y,   z-1),
-                 grad(perm[BA+1], x-1, y,   z-1)),
-        lerp(u, grad(perm[AB+1], x,   y-1, z-1),
-                 grad(perm[BB+1], x-1, y-1, z-1))
-      )
-    );
-  };
-})();
+  (function initOrbitAnimation() {
+    const canvas = document.getElementById('orbitCanvas');
+    if (!canvas) return;
 
-// --- Wave (white wireframe) -------------------------------------------------
-(function(){
-  // knobs
-  const GRID_SIZE = 220;
-  const SEGMENTS  = 60;
-  const AMP       = 6.0;
-  const FREQ      = 0.05;
-  let   FLOW      = 0.04;  // speed
+    // Scene setup with an orthographic camera for a 2D look
+    const scene = new THREE.Scene();
+    const frustumSize = 10;
+    const camera = new THREE.OrthographicCamera();
+    camera.position.z = 10;
 
-  const canvas  = document.getElementById('waveCanvas');
-  if (!canvas) return;
-  const wrapper = canvas.parentElement;
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setClearColor(0x000000, 0);
 
-  const scene    = new THREE.Scene();
-  const camera   = new THREE.PerspectiveCamera(60, 20, 40, 1000);
-  const renderer = new THREE.WebGLRenderer({ antialias:true, canvas, alpha:true });
-  renderer.setClearColor(0x000000, 0); // transparent section bg
+    // --- Create reusable objects ---
+    let orbitPath, scribbledOrbiter;
+    const curve = new THREE.QuadraticBezierCurve3();
 
-  const geom = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE, SEGMENTS, SEGMENTS);
-  geom.rotateX(-Math.PI/2);
-  const mat  = new THREE.MeshBasicMaterial({ color: 0x60a5fa, wireframe: true }); // <- white
-  const mesh = new THREE.Mesh(geom, mat);
-  mesh.scale.set(3.2, 3.2, 3.2); // zoom in on X/Z; try 1.6–2.2
-  scene.add(mesh);
+    // 1. The "scribbled" red orbiter object
+    const orbiterGeom = new THREE.TorusKnotGeometry(0.35, 0.1, 100, 16);
+    const orbiterMat = new THREE.LineBasicMaterial({ color: 0xff0000 });
+    const wireframe = new THREE.WireframeGeometry(orbiterGeom);
+    scribbledOrbiter = new THREE.LineSegments(wireframe, orbiterMat);
+    scene.add(scribbledOrbiter);
 
-  const HALF  = GRID_SIZE * 0.5;
-  const focus = new THREE.Vector3(-HALF, -8, HALF);        // lower target -> looks down a bit
-  const camDir = new THREE.Vector3(-1, 0.5, 1).normalize(); // higher camera (y=0.9)
-  let   camDist = 90;
+    // 2. The curved yellow orbit path (placeholder geometry)
+    const pathGeometry = new THREE.BufferGeometry();
+    const pathMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+    orbitPath = new THREE.Line(pathGeometry, pathMaterial);
+    scene.add(orbitPath);
 
-  function placeCam() {
-    camera.position.copy(focus).add(camDir.clone().multiplyScalar(camDist));
-    camera.lookAt(focus);
-  }
-  placeCam();
+    // --- Handlers ---
+    function onResize() {
+        const container = canvas.parentElement;
+        if (!container) return;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        renderer.setSize(width, height);
 
-  // === ORBIT ADD-ON (put this right after scene.add(mesh); and after the camera block) ===
-  const orbitGroup = new THREE.Group();
-  scene.add(orbitGroup);
+        const aspect = width / height;
+        camera.left = frustumSize * aspect / -2;
+        camera.right = frustumSize * aspect / 2;
+        camera.top = frustumSize / 2;
+        camera.bottom = frustumSize / -2;
+        camera.updateProjectionMatrix();
+        
+        // Update the curve to span the full width of the camera view
+        const edgeX = camera.right; // Use the exact camera edge
+        const arcHeight = 1.5;      // Lower peak for a flatter arc
+        const startY = -3.0;        // Lower start/end for a wider feel
 
-  let orbitCurve, orbitLine, orbitDot;
+        curve.v0.set(-edgeX, startY, 0);
+        curve.v1.set(0, arcHeight, 0); // Control point (peak)
+        curve.v2.set(edgeX, startY, 0);
 
-  // map a screen point (NDC) to a world point at a given distance from camera
-  function pointOnView(xN, yN, dist){
-    const v = new THREE.Vector3(xN, yN, 0.5).unproject(camera);
-    const dir = v.sub(camera.position).normalize();
-    return camera.position.clone().add(dir.multiplyScalar(dist));
-  }
-
-  function buildOrbit(){
-    // clean existing
-    if (orbitLine){
-      orbitGroup.remove(orbitLine);
-      orbitLine.geometry.dispose();
-      orbitLine.material.dispose();
-      orbitLine = null;
+        const points = curve.getPoints(50);
+        orbitPath.geometry.setFromPoints(points);
     }
 
-    const camToFocus = camera.position.distanceTo(focus);
-    const dist  = camToFocus * 1.5; // how far in front of camera the arc is
-    const xEdge = 1;              // how close to left/right screen edges (0..1)
-    const yTop  = 0.7;              // vertical position near the top (0..1)
+    // Use ResizeObserver for reliable container resizing detection
+    new ResizeObserver(onResize).observe(canvas.parentElement);
+    onResize(); // Initial call to set size and curve
 
-    const start = pointOnView(-xEdge, yTop, dist);
-    const end   = pointOnView( xEdge, yTop, dist);
+    // --- Animation Loop ---
+    function animate(time) {
+      requestAnimationFrame(animate);
 
-    const mid = start.clone().lerp(end, 0.5);
-    const arcHeight = start.distanceTo(end) * 0.06; // bow amount
-    mid.y += arcHeight;
+      // Loop a value 't' from 0.0 to 1.0
+      const t = (time * 0.0001) % 1;
 
-    orbitCurve = new THREE.QuadraticBezierCurve3(start, mid, end);
+      // Get the position on the curve
+      const positionOnCurve = curve.getPointAt(t);
+      scribbledOrbiter.position.copy(positionOnCurve);
 
-    const pts = orbitCurve.getPoints(160);
-    const geo = new THREE.BufferGeometry().setFromPoints(pts);
-    const mat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.00001, transparent: true, depthTest:false }); // Example with more transparency
-    orbitLine = new THREE.Line(geo, mat);
-    orbitLine.renderOrder = 999;
-    orbitGroup.add(orbitLine);
-
-    // === REPLACEMENT CODE FOR THE DOT ===
-    if (!orbitDot){
-      // 1. Load the image texture
-        const textureLoader = new THREE.TextureLoader();
-        console.log("Attempting to load texture..."); // Debug message
-
-        const orbitTexture = textureLoader.load(
-          // 1. The path to the image
-          './icons/s2.png',
-
-          // 2. onLoad callback (what to do when it succeeds)
-          function ( texture ) {
-            console.log("Texture loaded SUCCESSFULLY!", texture);
-          },
-
-          // 3. onProgress callback (not needed, but good to know)
-          undefined,
-
-          // 4. onError callback (what to do when it fails)
-          function ( err ) {
-            console.error( 'An error happened while loading the texture.', err );
-          }
-        );
-
-      // 2. Create a material for the sprite using the texture
-      const spriteMaterial = new THREE.SpriteMaterial({
-        map: orbitTexture,
-        depthTest: false,
-        transparent: true
-      });
-
-      // 3. Create the sprite object itself
-      orbitDot = new THREE.Sprite(spriteMaterial);
-      orbitDot.renderOrder = 1000;
-
-      // 4. Set the size of the sprite (adjust as needed)
-      orbitDot.scale.set(4, 4, 4); 
-
-      orbitGroup.add(orbitDot);
-    }
-  }
-  buildOrbit();
-
-  const pos  = geom.attributes.position;
-  const base = pos.array.slice();
-
-
-  // responsive sizing
-// responsive sizing
-    function resize(){
-      const w = wrapper.clientWidth  || window.innerWidth;
-      const h = wrapper.clientHeight || 400;
-      const aspect = w / h;
-
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setSize(w, h, false);
+      // Animate the scribble's rotation
+      scribbledOrbiter.rotation.x = time * 0.001;
+      scribbledOrbiter.rotation.y = time * 0.002;
       
-      camera.aspect = aspect;
-
-      // --- DYNAMIC FOV LOGIC ---
-      // This is the key fix. It zooms the camera in on wider screens.
-      const baseFov = 75; // The FOV for a standard screen
-      
-      if (aspect > 1.8) { // If the screen is wider than 1.8:1...
-        // Decrease the FOV to counteract the horizontal stretching
-        camera.fov = baseFov / (aspect / 1.8);
-      } else {
-        camera.fov = baseFov;
-      }
-      // --- END DYNAMIC FOV ---
-      
-      camera.updateProjectionMatrix();
-      buildOrbit();
-    }
-  resize();
-  addEventListener('resize', resize);
-  new ResizeObserver(resize).observe(wrapper);
-
-  // pause when offscreen
-  let running = true;
-  new IntersectionObserver((e)=>{ running = e[0]?.isIntersecting ?? true; }, { threshold:0 })
-    .observe(wrapper);
-  // timing for orbit
-  const clock = new THREE.Clock();
-  let orbitU = 0;              // 0..1 along the curve
-  const ORBIT_SPEED = 0.02;    // cycles per second (raise to test, e.g. 0.5)
-  function animate(t){
-    if (running){
-      const u = t*0.0001*FLOW*50;
-      const v = t*0.0001*FLOW*35;
-      for (let i=0;i<pos.count;i++){
-        const ix=i*3;
-        const x0=base[ix+0], z0=base[ix+2];
-        const n1 = perlin3(x0*FREQ + u, 0, z0*FREQ + v);
-        const n2 = perlin3(x0*(FREQ*0.45) - u*0.6, 0, z0*(FREQ*0.45) + v*0.6);
-        pos.array[ix+1] = (0.7*n1 + 0.3*n2) * AMP;
-      }
-      pos.needsUpdate = true;
-      // move the dot along the orbit
-      if (orbitCurve && orbitDot) {
-        const dt = clock.getDelta();           // seconds since last frame
-        orbitU = (orbitU + dt * ORBIT_SPEED) % 1;
-        orbitDot.position.copy(orbitCurve.getPoint(orbitU));
-      }
       renderer.render(scene, camera);
     }
-    requestAnimationFrame(animate);
-  }
-  requestAnimationFrame(animate);
-})();
+    animate();
+  })();
 </script>
 
+<!-- WAVES SCRIPT - CORRECTED -->
+<script>
+  // -------- Perlin noise 3D (tiny impl) ----
+  (function initPerlin(){
+    const p = new Uint8Array(256);
+    for (let i=0;i<256;i++) p[i]=i;
+    for (let i=255;i>0;i--) { const j=(Math.random()*(i+1))|0; const t=p[i]; p[i]=p[j]; p[j]=t; }
+    const perm = new Uint8Array(512);
+    for (let i=0;i<512;i++) perm[i]=p[i&255];
+    const fade = t => t*t*t*(t*(t*6-15)+10);
+    const lerp = (t,a,b) => a + t*(b-a);
+    const grad = (h,x,y,z) => {
+      const u = (h&15) < 8 ? x : y;
+      const v = (h&15) < 4 ? y : (h&15)===12 || (h&15)===14 ? x : z;
+      return ((h&1)?-u:u) + ((h&2)?-v:v);
+    };
+    window.perlin3 = function(x,y,z){
+      let X = Math.floor(x)&255, Y=Math.floor(y)&255, Z=Math.floor(z)&255;
+      x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+      const u=fade(x), v=fade(y), w=fade(z);
+      const A=perm[X]+Y,  AA=perm[A]+Z,  AB=perm[A+1]+Z;
+      const B=perm[X+1]+Y,BA=perm[B]+Z,  BB=perm[B+1]+Z;
+      return lerp(w,
+        lerp(v,
+          lerp(u, grad(perm[AA],   x,   y,   z),
+                   grad(perm[BA],   x-1, y,   z)),
+          lerp(u, grad(perm[AB],   x,   y-1, z),
+                   grad(perm[BB],   x-1, y-1, z))
+        ),
+        lerp(v,
+          lerp(u, grad(perm[AA+1], x,   y,   z-1),
+                   grad(perm[BA+1], x-1, y,   z-1)),
+          lerp(u, grad(perm[AB+1], x,   y-1, z-1),
+                   grad(perm[BB+1], x-1, y-1, z-1))
+        )
+      );
+    };
+  })();
+
+  // --- Wave Script ---
+  (function(){
+    // -------- Knobs ----------------
+    const GRID_SIZE = 220;
+    const SEGMENTS  = 120;
+    const AMP       = 4.0;
+    const FREQ      = 0.05;
+    const FLOW      = 0.04;
+
+    const canvas = document.getElementById('waveCanvas');
+    if (!canvas) return;
+    const wrapper = canvas.parentElement;
+
+    // -------- Scene Setup ----------------
+    const scene    = new THREE.Scene();
+    const camera   = new THREE.PerspectiveCamera(60, wrapper.clientWidth / wrapper.clientHeight, 0.1, 4000);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+    renderer.setClearColor(0x000000, 0); // Transparent background
+
+    const HALF  = GRID_SIZE * 0.5;
+    const focus = new THREE.Vector3(-HALF, 4, HALF);
+    const camDir = new THREE.Vector3(-1, 0.3, 1).normalize();
+    let   camDist = 100;
+
+    function placeCam() {
+      camera.position.copy(focus).add(camDir.clone().multiplyScalar(camDist));
+      camera.lookAt(focus);
+    }
+    placeCam();
+
+    // -------- Waves with Algal Bloom Shader ------------------------
+    const geom = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE, SEGMENTS, SEGMENTS);
+    geom.rotateX(-Math.PI/2);
+    
+    const vertexShader = `
+      varying vec3 v_world_pos;
+      varying float v_height;
+      void main() {
+        vec4 world_pos = modelMatrix * vec4(position, 1.0);
+        v_height = world_pos.y;
+        v_world_pos = world_pos.xyz;
+        gl_Position = projectionMatrix * viewMatrix * world_pos;
+      }
+    `;
+
+    // --- FRAGMENT SHADER FOR SPIRALS ---
+    const fragmentShader = `
+      uniform float u_time;
+      uniform vec3 u_color_water;
+      uniform vec3 u_color_algae_dark;
+      uniform vec3 u_color_algae_light;
+      varying vec3 v_world_pos;
+      varying float v_height;
+
+      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; } // FIX: Was 1.o
+      vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+      float snoise(vec2 v) {
+        const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+        vec2 i  = floor(v + dot(v, C.yy) );
+        vec2 x0 = v -   i + dot(i, C.xx);
+        vec2 i1;
+        i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+        vec4 x12 = x0.xyxy + C.xxzz;
+        x12.xy -= i1;
+        i = mod289(i);
+        vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
+        vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+        m = m*m;
+        m = m*m;
+        vec3 x = 2.0 * fract(p * C.www) - 1.0;
+        vec3 h = abs(x) - 0.5;
+        vec3 ox = floor(x + 0.5);
+        vec3 a0 = x - ox;
+        m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+        vec3 g;
+        g.x  = a0.x  * x0.x  + h.x  * x0.y;
+        g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+        return 130.0 * dot(m, g);
+      }
+
+      void main() {
+        vec2 uv = v_world_pos.xz * 0.005 + u_time * 0.1;
+        vec2 warp_offset;
+        warp_offset.x = snoise(uv * 1.5 + vec2(1.2, 3.4));
+        warp_offset.y = snoise(uv * 1.5 + vec2(5.6, 7.8));
+        float distortion_strength = 2.5;
+        vec2 warped_uv = uv + warp_offset * distortion_strength;
+        float angle = atan(warped_uv.x, warped_uv.y);
+        float radius = length(warped_uv);
+        float num_arms = 8.0;
+        float spiral_value = sin(angle * num_arms + radius * 1.2 - u_time * 2.0);
+        float patch_noise = snoise(uv * 0.5 - u_time * 0.05);
+        float combined_value = (spiral_value + patch_noise) * 0.5;
+        float outer_mask = smoothstep(0.45, 0.75, combined_value);
+        float core_mask = smoothstep(0.65, 0.80, combined_value);
+        vec3 color = u_color_water;
+        color = mix(color, u_color_algae_dark, outer_mask);
+        color = mix(color, u_color_algae_light, core_mask);
+        float height_factor = smoothstep(-4.0, 4.0, v_height);
+        gl_FragColor = vec4(mix(color * 0.7, color, height_factor), 1.0);
+      }
+    `;
+
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        u_time: { value: 0.0 },
+        u_color_water: { value: new THREE.Color(0x0b2640) },
+        u_color_algae_dark: { value: new THREE.Color(0x2d8a6e) },
+        u_color_algae_light: { value: new THREE.Color(0x99cc66) },
+      },
+      vertexShader,
+      fragmentShader,
+      wireframe: true
+    });
+    
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.scale.set(3.2, 3.2, 3.2);
+    scene.add(mesh);
+
+    const pos  = geom.attributes.position;
+    const base = pos.array.slice();
+
+    // -------- Resize Handler -------------
+    function resize(){
+      const w = wrapper.clientWidth;
+      const h = wrapper.clientHeight;
+      const aspect = w / h;
+
+      renderer.setSize(w, h, false);
+      camera.aspect = aspect;
+
+      const baseFov = 75;
+      if (aspect > 1.8) { camera.fov = baseFov / (aspect / 1.8); }
+      else { camera.fov = baseFov; }
+
+      camera.updateProjectionMatrix();
+    }
+    new ResizeObserver(resize).observe(wrapper);
+    resize();
+
+    // -------- Animate -----------------------
+    function animate(t){
+      const u_js = t * 0.0001 * FLOW * 50;
+      const v_js = t * 0.0001 * FLOW * 35;
+      for (let i=0; i < pos.count; i++){
+        const ix = i * 3;
+        const x0 = base[ix];
+        const z0 = base[ix+2];
+        const n1 = perlin3(x0 * FREQ - u_js, 0, z0 * FREQ - v_js);
+        const n2 = perlin3(x0 * (FREQ * 0.45) + u_js * 0.6, 0, z0 * (FREQ * 0.45) - v_js * 0.6);
+        pos.array[ix+1] = (0.7 * n1 + 0.3 * n2) * AMP;
+      }
+      pos.needsUpdate = true;
+
+      mesh.material.uniforms.u_time.value = t * 0.0001;
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+
+  })();
+</script>
 
 </body>
 </html>
