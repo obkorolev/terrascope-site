@@ -855,7 +855,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // IMPORTANT: You must have an image named 'satellite.png' in the same folder as this HTML file.
     const textureLoader = new THREE.TextureLoader();
     const satelliteTexture = textureLoader.load(
-        './icons/s2f.png',
+        './icons/s2.png',
         () => {}, // onLoad callback
         undefined, // onProgress callback
         (err) => { console.error('An error occurred loading the satellite texture.'); } // onError callback
@@ -910,7 +910,7 @@ window.addEventListener('DOMContentLoaded', () => {
       requestAnimationFrame(animate);
 
       // Loop a value 't' from 0.0 to 1.0
-      const t = (time * 0.0001) % 1;
+      const t = (time * 0.00005) % 1;
 
       // Get the position on the curve and apply it to the satellite
       const positionOnCurve = curve.getPointAt(t);
