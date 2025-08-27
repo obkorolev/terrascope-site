@@ -434,7 +434,7 @@
   </section>
 
 <!-- ORBIT ANIMATION SECTION -->
-  <section class="relative bg-black h-56 overflow-hidden -mt-16">
+  <section class="relative bg-transparent h-56 overflow-hidden -mt-32">
       <div class="absolute inset-0">
           <canvas id="orbitCanvas"></canvas>
       </div>
@@ -855,7 +855,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // IMPORTANT: You must have an image named 'satellite.png' in the same folder as this HTML file.
     const textureLoader = new THREE.TextureLoader();
     const satelliteTexture = textureLoader.load(
-        './icons/s2.png',
+        './icons/s2f.png',
         () => {}, // onLoad callback
         undefined, // onProgress callback
         (err) => { console.error('An error occurred loading the satellite texture.'); } // onError callback
@@ -868,7 +868,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // 2. The curved yellow orbit path (placeholder geometry)
     const pathGeometry = new THREE.BufferGeometry();
-    const pathMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const pathMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 });
     orbitPath = new THREE.Line(pathGeometry, pathMaterial);
     scene.add(orbitPath);
 
