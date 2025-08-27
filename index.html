@@ -433,7 +433,12 @@
     </div>
   </section>
 
-
+<!-- ORBIT ANIMATION SECTION -->
+  <section class="relative bg-black h-56 overflow-hidden -mt-16">
+      <div class="absolute inset-0">
+          <canvas id="orbitCanvas"></canvas>
+      </div>
+  </section>
 
 
 <!-- UNIFIED FOOTER & WAVE SECTION (Fully Responsive) -->
@@ -511,7 +516,7 @@ window.addEventListener('DOMContentLoaded', () => {
     else if (val.startsWith('No rush')) urgWrap.classList.add('urg-norush');
     else urgWrap.classList.add('urg-standard');
   }
-  function ensurePortaled() { if (!urgMenu || urgMenu.dataset.portaled) return; document.body.appendChild(urgMenu); urgMenu.dataset.portaled = '1'; urgMenu.style.position = 'fixed'; urgMenu.style.zIndex = '2147483647'; urgMenu.style.margin = '0'; }
+  function ensurePortaled() { if (!urgMenu || urgMenu.dataset.portaled) return; document.body.appendChild(urgMenu); urgMenu.dataset.portaled = '1'; urgMenu.style.position = 'fixed'; urgMenu.style.zIndex = '214783647'; urgMenu.style.margin = '0'; }
   function updateMenuPosition() { if (!urgBtn || !urgMenu) return; const r = urgBtn.getBoundingClientRect(); urgMenu.style.left = Math.round(r.left) + 'px'; urgMenu.style.top = Math.round(r.bottom + 8) + 'px'; urgMenu.style.minWidth = Math.max(r.width, 224) + 'px'; }
   function openMenu() { ensurePortaled(); updateMenuPosition(); urgMenu.classList.remove('hidden'); urgWrap && urgWrap.classList.add('urg-open'); }
   function closeMenu() { if (!urgMenu) return; urgMenu.classList.add('hidden'); urgWrap && urgWrap.classList.remove('urg-open'); }
@@ -843,19 +848,27 @@ window.addEventListener('DOMContentLoaded', () => {
     renderer.setClearColor(0x000000, 0);
 
     // --- Create reusable objects ---
-    let orbitPath, scribbledOrbiter;
+    let orbitPath, satelliteSprite;
     const curve = new THREE.QuadraticBezierCurve3();
 
-    // 1. The "scribbled" red orbiter object
-    const orbiterGeom = new THREE.TorusKnotGeometry(0.35, 0.1, 100, 16);
-    const orbiterMat = new THREE.LineBasicMaterial({ color: 0xff0000 });
-    const wireframe = new THREE.WireframeGeometry(orbiterGeom);
-    scribbledOrbiter = new THREE.LineSegments(wireframe, orbiterMat);
-    scene.add(scribbledOrbiter);
+    // 1. The satellite sprite from a PNG
+    // IMPORTANT: You must have an image named 'satellite.png' in the same folder as this HTML file.
+    const textureLoader = new THREE.TextureLoader();
+    const satelliteTexture = textureLoader.load(
+        './icons/s2.png',
+        () => {}, // onLoad callback
+        undefined, // onProgress callback
+        (err) => { console.error('An error occurred loading the satellite texture.'); } // onError callback
+    );
+    const satelliteMaterial = new THREE.SpriteMaterial({ map: satelliteTexture });
+    satelliteSprite = new THREE.Sprite(satelliteMaterial);
+    satelliteSprite.scale.set(1.5, 1.5, 1.5); // Adjust size as needed
+    scene.add(satelliteSprite);
+
 
     // 2. The curved yellow orbit path (placeholder geometry)
     const pathGeometry = new THREE.BufferGeometry();
-    const pathMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+    const pathMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
     orbitPath = new THREE.Line(pathGeometry, pathMaterial);
     scene.add(orbitPath);
 
@@ -899,13 +912,9 @@ window.addEventListener('DOMContentLoaded', () => {
       // Loop a value 't' from 0.0 to 1.0
       const t = (time * 0.0001) % 1;
 
-      // Get the position on the curve
+      // Get the position on the curve and apply it to the satellite
       const positionOnCurve = curve.getPointAt(t);
-      scribbledOrbiter.position.copy(positionOnCurve);
-
-      // Animate the scribble's rotation
-      scribbledOrbiter.rotation.x = time * 0.001;
-      scribbledOrbiter.rotation.y = time * 0.002;
+      satelliteSprite.position.copy(positionOnCurve);
       
       renderer.render(scene, camera);
     }
